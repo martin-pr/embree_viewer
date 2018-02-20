@@ -16,4 +16,15 @@ add_definitions(-std=c++11 -Werror -Wall -Wextra)
 find_package(SDL REQUIRED)
 find_package(SDL_image REQUIRED)
 
+# find embree3
+find_path(EMBREE_INCLUDE_DIR
+	NAMES rtcore.h
+	PATHS /usr/local/include/embree3 /usr/include/embree3
+)
+
+find_library(EMBREE_LIBRARY
+	NAMES embree3
+	PATHS /usr/local/lib /usr/lib
+)
+
 add_subdirectory (src build)
