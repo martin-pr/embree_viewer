@@ -8,6 +8,8 @@ set(CMAKE_BUILD_TYPE Debug)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 add_definitions(-std=c++11 -Werror -Wall -Wextra)
 
 add_subdirectory (src build)
