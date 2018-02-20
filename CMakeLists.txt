@@ -12,4 +12,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_definitions(-std=c++11 -Werror -Wall -Wextra)
 
+# find SDL
+find_package(SDL REQUIRED)
+find_package(SDL_image REQUIRED)
+
 add_subdirectory (src build)
