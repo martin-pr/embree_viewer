@@ -34,12 +34,17 @@ int main(int /*argc*/, char* /*argv*/[]) {
 		Scene scene;
 
 		// add a bunch of spheres
-		scene.addSphere(Vec3{ -2, 0, 0}, 0.3);
-		scene.addSphere(Vec3{0, 0, 0}, 0.3);
-		scene.addSphere(Vec3{2, 0, 0}, 0.3);
+		Scene sphere;
+		sphere.addSphere(Vec3{0,0,0}, 0.3);
+		sphere.commit();
 
-		scene.addSphere(Vec3{0, -2, 0}, 0.3);
-		scene.addSphere(Vec3{0, 2, 0}, 0.3);
+		{
+			static const int TOTAL = 2000;
+
+			for(int x=-TOTAL/2;x<TOTAL;++x)
+				for(int y=-TOTAL/2;y<TOTAL;++y)
+					scene.addInstance(sphere, Vec3{(float)x, 0, (float)y});
+		}
 
 		scene.commit();
 

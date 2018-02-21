@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include <boost/noncopyable.hpp>
 
 #include <rtcore.h>
@@ -14,13 +16,26 @@ class Scene : public boost::noncopyable {
 		~Scene();
 
 		unsigned addSphere(const Vec3& p, float r);
+		unsigned addInstance(const Scene& scene, const Vec3& tr);
 
 		void commit();
 
 		Vec3 renderPixel(const Ray& r);
 
 	private:
-		RTCDevice m_device;
+		struct ScopedDevice : public boost::noncopyable {
+			ScopedDevice();
+			~ScopedDevice();
+
+			operator RTCDevice& ();
+			operator const RTCDevice& () const;
+
+			RTCDevice device;
+		};
+
+		static std::shared_ptr<ScopedDevice> device();
+
+		std::shared_ptr<ScopedDevice> m_device;
 		RTCScene m_scene;
 
 };

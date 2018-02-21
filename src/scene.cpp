@@ -8,7 +8,10 @@
 
 namespace {
 
-const int numPhi = 5;
+// const int numPhi = 5;
+// const int numTheta = 2 * numPhi;
+
+const int numPhi = 50;
 const int numTheta = 2 * numPhi;
 
 void error_handler(void* /*userPtr*/, const RTCError, const char* str) {
@@ -17,22 +20,49 @@ void error_handler(void* /*userPtr*/, const RTCError, const char* str) {
 
 }
 
-Scene::Scene() : m_device(rtcNewDevice(NULL)) {
-	rtcSetDeviceErrorFunction(m_device, error_handler, NULL);
+Scene::ScopedDevice::ScopedDevice() : device(rtcNewDevice(NULL)) {
+	rtcSetDeviceErrorFunction(device, error_handler, NULL);
+}
 
-	m_scene = rtcNewScene(m_device);
+Scene::ScopedDevice::~ScopedDevice() {
+	rtcReleaseDevice(device);
+}
 
+Scene::ScopedDevice::operator RTCDevice& () {
+	return device;
+}
+
+Scene::ScopedDevice::operator const RTCDevice& () const {
+	return device;
+}
+
+std::shared_ptr<Scene::ScopedDevice> Scene::device() {
+	static std::weak_ptr<ScopedDevice> s_device;
+
+	std::shared_ptr<ScopedDevice> dev = s_device.lock();
+	if(!dev) {
+		dev = std::shared_ptr<ScopedDevice>(new ScopedDevice());
+		s_device = dev;
+	}
+
+	return dev;
+}
+
+///////////////
+
+Scene::Scene() : m_device(device()) {
+	m_scene = rtcNewScene(*m_device);
+
+	rtcSetSceneFlags(m_scene, RTC_SCENE_FLAG_COMPACT);
 }
 
 Scene::~Scene() {
 	rtcReleaseScene(m_scene);
-
-	rtcReleaseDevice(m_device);
 }
 
 unsigned Scene::addSphere(const Vec3& p, float r) {
 	/* create triangle mesh */
-	RTCGeometry geom = rtcNewGeometry(m_device, RTC_GEOMETRY_TYPE_TRIANGLE);
+	RTCGeometry geom = rtcNewGeometry(*m_device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
 	/* map triangle and vertex buffers */
 	Vertex *vertices = (Vertex *)rtcSetNewGeometryBuffer(
@@ -87,6 +117,20 @@ unsigned Scene::addSphere(const Vec3& p, float r) {
 	return geomID;
 }
 
+unsigned Scene::addInstance(const Scene& s, const Vec3& tr) {
+	RTCGeometry instance = rtcNewGeometry(*m_device, RTC_GEOMETRY_TYPE_INSTANCE);
+	rtcSetGeometryInstancedScene(instance, s.m_scene);
+	unsigned int geomID = rtcAttachGeometry(m_scene, instance);
+	rtcReleaseGeometry(instance);
+
+	float transform[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, tr.x, tr.y, tr.z, 1};
+	rtcSetGeometryTransform(instance, 0, RTC_FORMAT_FLOAT4X4_COLUMN_MAJOR, transform);
+
+	rtcCommitGeometry(instance);
+
+	return geomID;
+}
+
 void Scene::commit() {
 	rtcCommitScene(m_scene);
 }
@@ -118,10 +162,11 @@ Vec3 Scene::renderPixel(const Ray& r) {
 
 	rtcIntersect1(m_scene, &context, &rayhit);
 
-	Vec3 color{1,1,1};
+	Vec3 color{1, 1, 1};
 
 	if(rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID) {
-		color = Vec3{(float)(rayhit.hit.geomID & 1), (float)((rayhit.hit.geomID >> 1) & 1), (float)((rayhit.hit.geomID >> 2) & 1)};
+		//color = Vec3{(float)(rayhit.hit.geomID & 1), (float)((rayhit.hit.geomID >> 1) & 1), (float)((rayhit.hit.geomID >> 2) & 1)};
+		color = Vec3(1, 0, 0);
 
 		Vec3 norm(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z);
 		norm.normalize();
