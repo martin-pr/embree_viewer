@@ -23,7 +23,7 @@ void set_pixel(SDL_Surface *surface, int x, int y, const Vec3& pixel) {
 
 int main(int /*argc*/, char* /*argv*/[]) {
 	// SDL initialisation
-	if(SDL_Init(SDL_INIT_EVERYTHING))
+	if(SDL_Init(SDL_INIT_VIDEO))
 		throw std::runtime_error(SDL_GetError());
 
 	// make the window
@@ -79,11 +79,23 @@ int main(int /*argc*/, char* /*argv*/[]) {
 
 					// camera motion
 					else if(event.type == SDL_MOUSEMOTION) {
-						if(event.motion.state == SDL_BUTTON_LEFT) {
+						if(event.motion.state & SDL_BUTTON_LMASK) {
 							const float xangle = ((float)(event.motion.xrel) / (float)screen->w) * M_PI;
 							const float yangle = ((float)(event.motion.yrel) / (float)screen->h) * M_PI;
 
 							cam.rotate(xangle, yangle);
+						}
+
+						else if(event.motion.state & SDL_BUTTON_RMASK) {
+							const float ydiff = ((float)(event.motion.yrel) / (float)screen->h);
+
+							Vec3 tr = cam.target - cam.position;
+							float dist = tr.length();
+							tr.normalize();
+
+							dist = powf(dist, 1.0f+ydiff);
+
+							cam.position = cam.target - tr * dist;
 						}
 					}
 				}
