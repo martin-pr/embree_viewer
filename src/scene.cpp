@@ -17,22 +17,47 @@ void error_handler(void* /*userPtr*/, const RTCError, const char* str) {
 
 }
 
-Scene::Scene() : m_device(rtcNewDevice(NULL)) {
-	rtcSetDeviceErrorFunction(m_device, error_handler, NULL);
+Scene::ScopedDevice::ScopedDevice() : device(rtcNewDevice(NULL)) {
+	rtcSetDeviceErrorFunction(device, error_handler, NULL);
+}
 
-	m_scene = rtcNewScene(m_device);
+Scene::ScopedDevice::~ScopedDevice() {
+	rtcReleaseDevice(device);
+}
 
+Scene::ScopedDevice::operator RTCDevice& () {
+	return device;
+}
+
+Scene::ScopedDevice::operator const RTCDevice& () const {
+	return device;
+}
+
+std::shared_ptr<Scene::ScopedDevice> Scene::device() {
+	static std::weak_ptr<ScopedDevice> s_device;
+
+	std::shared_ptr<ScopedDevice> dev = s_device.lock();
+	if(!dev) {
+		dev = std::shared_ptr<ScopedDevice>(new ScopedDevice());
+		s_device = dev;
+	}
+
+	return dev;
+}
+
+///////////////
+
+Scene::Scene() : m_device(device()) {
+	m_scene = rtcNewScene(*m_device);
 }
 
 Scene::~Scene() {
 	rtcReleaseScene(m_scene);
-
-	rtcReleaseDevice(m_device);
 }
 
 unsigned Scene::addSphere(const Vec3& p, float r) {
 	/* create triangle mesh */
-	RTCGeometry geom = rtcNewGeometry(m_device, RTC_GEOMETRY_TYPE_TRIANGLE);
+	RTCGeometry geom = rtcNewGeometry(*m_device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
 	/* map triangle and vertex buffers */
 	Vertex *vertices = (Vertex *)rtcSetNewGeometryBuffer(
@@ -118,7 +143,7 @@ Vec3 Scene::renderPixel(const Ray& r) {
 
 	rtcIntersect1(m_scene, &context, &rayhit);
 
-	Vec3 color{1,1,1};
+	Vec3 color{1, 1, 1};
 
 	if(rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID) {
 		color = Vec3{(float)(rayhit.hit.geomID & 1), (float)((rayhit.hit.geomID >> 1) & 1), (float)((rayhit.hit.geomID >> 2) & 1)};
