@@ -16,6 +16,7 @@ class Scene : public boost::noncopyable {
 		~Scene();
 
 		unsigned addSphere(const Vec3& p, float r);
+		unsigned addInstance(const Scene& scene, const Vec3& tr);
 
 		void commit();
 
