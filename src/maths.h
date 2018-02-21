@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cassert>
+#include <iostream>
 
 struct Vec3 {
 	Vec3(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {
@@ -54,6 +55,10 @@ struct Vec3 {
 		);
 	}
 
+	float length() const {
+		return std::sqrt(x*x + y*y + z*z);
+	}
+
 } __attribute__ ((aligned (16)));
 
 typedef Vec3 Vertex;
@@ -91,5 +96,23 @@ struct Camera {
 			position,
 			dir
 		};
+	}
+
+	void rotate(float xangle, float yangle) {
+		Vec3 dir = target - position;
+
+		float xrot = atan2(dir.z, dir.x);
+		xrot -= xangle;
+
+		float yrot = atan2(dir.y, sqrt(dir.z*dir.z + dir.x*dir.x));
+		yrot += yangle;
+
+		dir = Vec3(
+			cos(xrot) * cos(yrot),
+			sin(yrot),
+			sin(xrot) * cos(yrot)
+		) * dir.length();
+
+		position = target - dir;
 	}
 };
