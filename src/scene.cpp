@@ -91,25 +91,22 @@ void Scene::commit() {
 	rtcCommitScene(m_scene);
 }
 
-Vec3 Scene::renderPixel(float x, float y) {
+Vec3 Scene::renderPixel(const Ray& r) {
 	RTCIntersectContext context;
 	rtcInitIntersectContext(&context);
 
-	Vec3 dir(x, y, 1);
-	dir.normalize();
-
 	RTCRayHit rayhit;
 
-	rayhit.ray.org_x = 0;
-	rayhit.ray.org_y = 0;
-	rayhit.ray.org_z = -4;
+	rayhit.ray.org_x = r.origin.x;
+	rayhit.ray.org_y = r.origin.y;
+	rayhit.ray.org_z = r.origin.z;
 
 	rayhit.ray.tnear = 0;
 	rayhit.ray.tfar = std::numeric_limits<float>::infinity();
 
-	rayhit.ray.dir_x = dir.x;
-	rayhit.ray.dir_y = dir.y;
-	rayhit.ray.dir_z = dir.z;
+	rayhit.ray.dir_x = r.direction.x;
+	rayhit.ray.dir_y = r.direction.y;
+	rayhit.ray.dir_z = r.direction.z;
 
 	rayhit.ray.time = 0;
 
@@ -129,7 +126,7 @@ Vec3 Scene::renderPixel(float x, float y) {
 		Vec3 norm(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z);
 		norm.normalize();
 
-		const float d = std::abs(dir.dot(norm));
+		const float d = std::abs(r.direction.dot(norm));
 
 		color.x *= d;
 		color.y *= d;

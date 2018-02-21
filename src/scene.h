@@ -17,7 +17,7 @@ class Scene : public boost::noncopyable {
 
 		void commit();
 
-		Vec3 renderPixel(float x, float y);
+		Vec3 renderPixel(const Ray& r);
 
 	private:
 		RTCDevice m_device;

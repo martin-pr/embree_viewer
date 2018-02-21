@@ -45,6 +45,8 @@ int main(int /*argc*/, char* /*argv*/[]) {
 
 		///////////////////////////
 
+		Camera cam;
+
 		// the main loop
 		unsigned ctr = 0;
 		while(1) {
@@ -54,7 +56,9 @@ int main(int /*argc*/, char* /*argv*/[]) {
 					const float xf = ((float)x / (float)screen->w - 0.5f) * 2.0f;
 					const float yf = ((float)y / (float)screen->h - 0.5f) * 2.0f;
 
-					const Vec3 color = scene.renderPixel(xf, yf);
+					const Ray r = cam.makeRay(xf, yf);
+
+					const Vec3 color = scene.renderPixel(r);
 
 					set_pixel(screen, x, y, color);
 				}
