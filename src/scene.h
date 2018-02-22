@@ -4,9 +4,9 @@
 
 #include <boost/noncopyable.hpp>
 
-#include <rtcore.h>
-#include <rtcore_device.h>
-#include <rtcore_scene.h>
+#include <embree3/rtcore.h>
+#include <embree3/rtcore_device.h>
+#include <embree3/rtcore_scene.h>
 
 #include "maths.h"
 

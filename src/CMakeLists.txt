@@ -13,5 +13,6 @@ add_executable(embree_viewer ${sources})
 target_link_libraries(embree_viewer
 	${SDL_LIBRARY}
 	${SDL_IMAGE_LIBRARY}
-	${EMBREE_LIBRARY}
+	#${EMBREE_LIBRARY}
+	embree3
 )
