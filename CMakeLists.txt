@@ -19,4 +19,7 @@ find_package(SDL_image REQUIRED)
 # find embree3
 find_package(embree 3)
 
+# find alembic
+find_package(Alembic)
+
 add_subdirectory (src build)
