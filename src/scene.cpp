@@ -14,44 +14,10 @@ namespace {
 const int numPhi = 50;
 const int numTheta = 2 * numPhi;
 
-void error_handler(void* /*userPtr*/, const RTCError, const char* str) {
-	std::cerr << "Device error: " << str << std::endl;
 }
 
-}
-
-Scene::ScopedDevice::ScopedDevice() : device(rtcNewDevice(NULL)) {
-	rtcSetDeviceErrorFunction(device, error_handler, NULL);
-}
-
-Scene::ScopedDevice::~ScopedDevice() {
-	rtcReleaseDevice(device);
-}
-
-Scene::ScopedDevice::operator RTCDevice& () {
-	return device;
-}
-
-Scene::ScopedDevice::operator const RTCDevice& () const {
-	return device;
-}
-
-std::shared_ptr<Scene::ScopedDevice> Scene::device() {
-	static std::weak_ptr<ScopedDevice> s_device;
-
-	std::shared_ptr<ScopedDevice> dev = s_device.lock();
-	if(!dev) {
-		dev = std::shared_ptr<ScopedDevice>(new ScopedDevice());
-		s_device = dev;
-	}
-
-	return dev;
-}
-
-///////////////
-
-Scene::Scene() : m_device(device()) {
-	m_scene = rtcNewScene(*m_device);
+Scene::Scene() {
+	m_scene = rtcNewScene(m_device);
 
 	rtcSetSceneFlags(m_scene, RTC_SCENE_FLAG_COMPACT);
 }
@@ -62,7 +28,7 @@ Scene::~Scene() {
 
 unsigned Scene::addSphere(const Vec3& p, float r) {
 	/* create triangle mesh */
-	RTCGeometry geom = rtcNewGeometry(*m_device, RTC_GEOMETRY_TYPE_TRIANGLE);
+	RTCGeometry geom = rtcNewGeometry(m_device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
 	/* map triangle and vertex buffers */
 	Vertex *vertices = (Vertex *)rtcSetNewGeometryBuffer(
@@ -118,7 +84,7 @@ unsigned Scene::addSphere(const Vec3& p, float r) {
 }
 
 unsigned Scene::addInstance(const Scene& s, const Vec3& tr) {
-	RTCGeometry instance = rtcNewGeometry(*m_device, RTC_GEOMETRY_TYPE_INSTANCE);
+	RTCGeometry instance = rtcNewGeometry(m_device, RTC_GEOMETRY_TYPE_INSTANCE);
 	rtcSetGeometryInstancedScene(instance, s.m_scene);
 	unsigned int geomID = rtcAttachGeometry(m_scene, instance);
 	rtcReleaseGeometry(instance);

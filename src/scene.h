@@ -5,10 +5,10 @@
 #include <boost/noncopyable.hpp>
 
 #include <embree3/rtcore.h>
-#include <embree3/rtcore_device.h>
 #include <embree3/rtcore_scene.h>
 
 #include "maths.h"
+#include "device.h"
 
 class Scene : public boost::noncopyable {
 	public:
@@ -23,19 +23,7 @@ class Scene : public boost::noncopyable {
 		Vec3 renderPixel(const Ray& r);
 
 	private:
-		struct ScopedDevice : public boost::noncopyable {
-			ScopedDevice();
-			~ScopedDevice();
-
-			operator RTCDevice& ();
-			operator const RTCDevice& () const;
-
-			RTCDevice device;
-		};
-
-		static std::shared_ptr<ScopedDevice> device();
-
-		std::shared_ptr<ScopedDevice> m_device;
+		Device m_device;
 		RTCScene m_scene;
 
 };
