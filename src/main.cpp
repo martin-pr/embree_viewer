@@ -5,6 +5,7 @@
 
 #include "scene.h"
 #include "maths.h"
+#include "mesh.h"
 
 #define SCREEN_SIZE	512
 #define SCREEN_BPP	32
@@ -35,15 +36,20 @@ int main(int /*argc*/, char* /*argv*/[]) {
 
 		// add a bunch of spheres
 		Scene sphere;
-		sphere.addSphere(Vec3{0,0,0}, 0.3);
+		{
+			Mesh m = Mesh::makeSphere(Vec3{0,0,0}, 0.3);
+			sphere.addMesh(std::move(m));
+		}
 		sphere.commit();
 
 		{
-			static const int TOTAL = 2000;
+			static const long TOTAL = 1e5;
+			static const long SQTOTAL = powf(TOTAL, 1.0/3.0);
 
-			for(int x=-TOTAL/2;x<TOTAL;++x)
-				for(int y=-TOTAL/2;y<TOTAL;++y)
-					scene.addInstance(sphere, Vec3{(float)x, 0, (float)y});
+			for(long x=-SQTOTAL/2;x<SQTOTAL/2;++x)
+				for(long y=-SQTOTAL/2;y<SQTOTAL/2;++y)
+					for(long z=-SQTOTAL/2;z<SQTOTAL/2;++z)
+						scene.addInstance(sphere, Vec3{(float)x, (float)y, (float)z});
 		}
 
 		scene.commit();

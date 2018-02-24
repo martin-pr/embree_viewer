@@ -10,12 +10,14 @@
 #include "maths.h"
 #include "device.h"
 
+class Mesh;
+
 class Scene : public boost::noncopyable {
 	public:
 		Scene();
 		~Scene();
 
-		unsigned addSphere(const Vec3& p, float r);
+		unsigned addMesh(Mesh&& geom);
 		unsigned addInstance(const Scene& scene, const Vec3& tr);
 
 		void commit();

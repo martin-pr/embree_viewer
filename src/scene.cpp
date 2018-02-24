@@ -6,6 +6,8 @@
 
 #include <embree3/rtcore_ray.h>
 
+#include "mesh.h"
+
 namespace {
 
 // const int numPhi = 5;
@@ -26,60 +28,11 @@ Scene::~Scene() {
 	rtcReleaseScene(m_scene);
 }
 
-unsigned Scene::addSphere(const Vec3& p, float r) {
-	/* create triangle mesh */
-	RTCGeometry geom = rtcNewGeometry(m_device, RTC_GEOMETRY_TYPE_TRIANGLE);
+unsigned Scene::addMesh(Mesh&& geom) {
+	unsigned int geomID = rtcAttachGeometry(m_scene, geom.geom());
 
-	/* map triangle and vertex buffers */
-	Vertex *vertices = (Vertex *)rtcSetNewGeometryBuffer(
-	                       geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(Vertex),
-	                       numTheta * (numPhi + 1));
-	Triangle *triangles = (Triangle *)rtcSetNewGeometryBuffer(
-	                          geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(Triangle),
-	                          2 * numTheta * (numPhi - 1));
+	rtcCommitGeometry(geom.geom());
 
-	/* create sphere */
-	int tri = 0;
-	const float rcpNumTheta = 1.0f / (float)numTheta;
-	const float rcpNumPhi = 1.0f / (float)numPhi;
-	for(int phi = 0; phi <= numPhi; phi++) {
-		for(int theta = 0; theta < numTheta; theta++) {
-			const float phif = phi * float(M_PI) * rcpNumPhi;
-			const float thetaf = theta * 2.0f * float(M_PI) * rcpNumTheta;
-
-			Vertex &v = vertices[phi * numTheta + theta];
-			v.x = p.x + r * sin(phif) * sin(thetaf);
-			v.y = p.y + r * cos(phif);
-			v.z = p.z + r * sin(phif) * cos(thetaf);
-		}
-		if(phi == 0)
-			continue;
-
-		for(int theta = 1; theta <= numTheta; theta++) {
-			int p00 = (phi - 1) * numTheta + theta - 1;
-			int p01 = (phi - 1) * numTheta + theta % numTheta;
-			int p10 = phi * numTheta + theta - 1;
-			int p11 = phi * numTheta + theta % numTheta;
-
-			if(phi > 1) {
-				triangles[tri].v0 = p10;
-				triangles[tri].v1 = p01;
-				triangles[tri].v2 = p00;
-				tri++;
-			}
-
-			if(phi < numPhi) {
-				triangles[tri].v0 = p11;
-				triangles[tri].v1 = p01;
-				triangles[tri].v2 = p10;
-				tri++;
-			}
-		}
-	}
-
-	rtcCommitGeometry(geom);
-	unsigned int geomID = rtcAttachGeometry(m_scene, geom);
-	rtcReleaseGeometry(geom);
 	return geomID;
 }
 
