@@ -6,6 +6,7 @@
 #include "scene.h"
 #include "maths.h"
 #include "mesh.h"
+#include "alembic.h"
 
 #define SCREEN_SIZE	512
 #define SCREEN_BPP	32
@@ -22,7 +23,7 @@ void set_pixel(SDL_Surface *surface, int x, int y, const Vec3& pixel) {
 }
 }
 
-int main(int /*argc*/, char* /*argv*/[]) {
+int main(int argc, char* argv[]) {
 	// SDL initialisation
 	if(SDL_Init(SDL_INIT_VIDEO))
 		throw std::runtime_error(SDL_GetError());
@@ -35,21 +36,25 @@ int main(int /*argc*/, char* /*argv*/[]) {
 		Scene scene;
 
 		// add a bunch of spheres
-		Scene sphere;
-		{
+		Scene mesh;
+		if(argc == 1) {
 			Mesh m = Mesh::makeSphere(Vec3{0,0,0}, 0.3);
-			sphere.addMesh(std::move(m));
+			mesh.addMesh(std::move(m));
 		}
-		sphere.commit();
+		else
+			mesh = loadAlembic(argv[1]);
+		mesh.commit();
 
 		{
-			static const long TOTAL = 1e5;
-			static const long SQTOTAL = powf(TOTAL, 1.0/3.0);
+			// // static const long TOTAL = 1e5;
+			// static const long SQTOTAL = powf(TOTAL, 1.0/3.0);
 
-			for(long x=-SQTOTAL/2;x<SQTOTAL/2;++x)
-				for(long y=-SQTOTAL/2;y<SQTOTAL/2;++y)
-					for(long z=-SQTOTAL/2;z<SQTOTAL/2;++z)
-						scene.addInstance(sphere, Vec3{(float)x, (float)y, (float)z});
+			// for(long x=-SQTOTAL/2;x<SQTOTAL/2;++x)
+			// 	for(long y=-SQTOTAL/2;y<SQTOTAL/2;++y)
+			// 		for(long z=-SQTOTAL/2;z<SQTOTAL/2;++z)
+			// 			scene.addInstance(mesh, Vec3{(float)x, (float)y, (float)z});
+
+			scene.addInstance(mesh, Vec3(0,0,0));
 		}
 
 		scene.commit();
