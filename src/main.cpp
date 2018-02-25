@@ -5,6 +5,8 @@
 
 #include "scene.h"
 #include "maths.h"
+#include "mesh.h"
+#include "alembic.h"
 
 #define SCREEN_SIZE	512
 #define SCREEN_BPP	32
@@ -21,7 +23,7 @@ void set_pixel(SDL_Surface *surface, int x, int y, const Vec3& pixel) {
 }
 }
 
-int main(int /*argc*/, char* /*argv*/[]) {
+int main(int argc, char* argv[]) {
 	// SDL initialisation
 	if(SDL_Init(SDL_INIT_VIDEO))
 		throw std::runtime_error(SDL_GetError());
@@ -34,16 +36,25 @@ int main(int /*argc*/, char* /*argv*/[]) {
 		Scene scene;
 
 		// add a bunch of spheres
-		Scene sphere;
-		sphere.addSphere(Vec3{0,0,0}, 0.3);
-		sphere.commit();
+		Scene mesh;
+		if(argc == 1) {
+			Mesh m = Mesh::makeSphere(Vec3{0,0,0}, 0.3);
+			mesh.addMesh(std::move(m));
+		}
+		else
+			mesh = loadAlembic(argv[1]);
+		mesh.commit();
 
 		{
-			static const int TOTAL = 2000;
+			// // static const long TOTAL = 1e5;
+			// static const long SQTOTAL = powf(TOTAL, 1.0/3.0);
 
-			for(int x=-TOTAL/2;x<TOTAL;++x)
-				for(int y=-TOTAL/2;y<TOTAL;++y)
-					scene.addInstance(sphere, Vec3{(float)x, 0, (float)y});
+			// for(long x=-SQTOTAL/2;x<SQTOTAL/2;++x)
+			// 	for(long y=-SQTOTAL/2;y<SQTOTAL/2;++y)
+			// 		for(long z=-SQTOTAL/2;z<SQTOTAL/2;++z)
+			// 			scene.addInstance(mesh, Vec3{(float)x, (float)y, (float)z});
+
+			scene.addInstance(mesh, Vec3(0,0,0));
 		}
 
 		scene.commit();
@@ -64,7 +75,7 @@ int main(int /*argc*/, char* /*argv*/[]) {
 					const float xf = ((float)x / (float)screen->w - 0.5f) * 2.0f;
 					const float yf = ((float)y / (float)screen->h - 0.5f) * 2.0f;
 
-					const Ray r = cam.makeRay(xf, yf);
+					const Ray r = cam.makeRay(xf, -yf);
 
 					const Vec3 color = scene.renderPixel(r);
 
@@ -88,7 +99,7 @@ int main(int /*argc*/, char* /*argv*/[]) {
 							const float xangle = ((float)(event.motion.xrel) / (float)screen->w) * M_PI;
 							const float yangle = ((float)(event.motion.yrel) / (float)screen->h) * M_PI;
 
-							cam.rotate(xangle, yangle);
+							cam.rotate(xangle, -yangle);
 						}
 
 						else if(event.motion.state & SDL_BUTTON_RMASK) {

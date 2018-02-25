@@ -4,18 +4,23 @@
 
 #include <boost/noncopyable.hpp>
 
-#include <rtcore.h>
-#include <rtcore_device.h>
-#include <rtcore_scene.h>
+#include <embree3/rtcore.h>
+#include <embree3/rtcore_scene.h>
 
 #include "maths.h"
+#include "device.h"
+
+class Mesh;
 
 class Scene : public boost::noncopyable {
 	public:
 		Scene();
 		~Scene();
 
-		unsigned addSphere(const Vec3& p, float r);
+		Scene(Scene&& s);
+		Scene& operator = (Scene&& s);
+
+		unsigned addMesh(Mesh&& geom);
 		unsigned addInstance(const Scene& scene, const Vec3& tr);
 
 		void commit();
@@ -23,19 +28,22 @@ class Scene : public boost::noncopyable {
 		Vec3 renderPixel(const Ray& r);
 
 	private:
-		struct ScopedDevice : public boost::noncopyable {
-			ScopedDevice();
-			~ScopedDevice();
+		class SceneHandle {
+			public:
+				SceneHandle(Device& device);
+				~SceneHandle();
 
-			operator RTCDevice& ();
-			operator const RTCDevice& () const;
+				SceneHandle(const SceneHandle& m) = delete;
+				SceneHandle& operator=(const SceneHandle& m) = delete;
 
-			RTCDevice device;
+				operator RTCScene& ();
+				operator const RTCScene& () const;
+
+			private:
+				RTCScene m_scene;
 		};
 
-		static std::shared_ptr<ScopedDevice> device();
+		Device m_device;
 
-		std::shared_ptr<ScopedDevice> m_device;
-		RTCScene m_scene;
-
+		std::unique_ptr<SceneHandle> m_scene;
 };

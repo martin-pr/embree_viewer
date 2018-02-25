@@ -6,121 +6,58 @@
 
 #include <embree3/rtcore_ray.h>
 
-namespace {
+#include "mesh.h"
 
-// const int numPhi = 5;
-// const int numTheta = 2 * numPhi;
-
-const int numPhi = 50;
-const int numTheta = 2 * numPhi;
-
-void error_handler(void* /*userPtr*/, const RTCError, const char* str) {
-	std::cerr << "Device error: " << str << std::endl;
-}
-
-}
-
-Scene::ScopedDevice::ScopedDevice() : device(rtcNewDevice(NULL)) {
-	rtcSetDeviceErrorFunction(device, error_handler, NULL);
-}
-
-Scene::ScopedDevice::~ScopedDevice() {
-	rtcReleaseDevice(device);
-}
-
-Scene::ScopedDevice::operator RTCDevice& () {
-	return device;
-}
-
-Scene::ScopedDevice::operator const RTCDevice& () const {
-	return device;
-}
-
-std::shared_ptr<Scene::ScopedDevice> Scene::device() {
-	static std::weak_ptr<ScopedDevice> s_device;
-
-	std::shared_ptr<ScopedDevice> dev = s_device.lock();
-	if(!dev) {
-		dev = std::shared_ptr<ScopedDevice>(new ScopedDevice());
-		s_device = dev;
-	}
-
-	return dev;
-}
-
-///////////////
-
-Scene::Scene() : m_device(device()) {
-	m_scene = rtcNewScene(*m_device);
+Scene::SceneHandle::SceneHandle(Device& device) {
+	m_scene = rtcNewScene(device);
 
 	rtcSetSceneFlags(m_scene, RTC_SCENE_FLAG_COMPACT);
 }
 
-Scene::~Scene() {
+Scene::SceneHandle::~SceneHandle() {
 	rtcReleaseScene(m_scene);
 }
 
-unsigned Scene::addSphere(const Vec3& p, float r) {
-	/* create triangle mesh */
-	RTCGeometry geom = rtcNewGeometry(*m_device, RTC_GEOMETRY_TYPE_TRIANGLE);
+Scene::SceneHandle::operator RTCScene& () {
+	return m_scene;
+}
 
-	/* map triangle and vertex buffers */
-	Vertex *vertices = (Vertex *)rtcSetNewGeometryBuffer(
-	                       geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(Vertex),
-	                       numTheta * (numPhi + 1));
-	Triangle *triangles = (Triangle *)rtcSetNewGeometryBuffer(
-	                          geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(Triangle),
-	                          2 * numTheta * (numPhi - 1));
+Scene::SceneHandle::operator const RTCScene& () const {
+	return m_scene;
+}
 
-	/* create sphere */
-	int tri = 0;
-	const float rcpNumTheta = 1.0f / (float)numTheta;
-	const float rcpNumPhi = 1.0f / (float)numPhi;
-	for(int phi = 0; phi <= numPhi; phi++) {
-		for(int theta = 0; theta < numTheta; theta++) {
-			const float phif = phi * float(M_PI) * rcpNumPhi;
-			const float thetaf = theta * 2.0f * float(M_PI) * rcpNumTheta;
+////////////
 
-			Vertex &v = vertices[phi * numTheta + theta];
-			v.x = p.x + r * sin(phif) * sin(thetaf);
-			v.y = p.y + r * cos(phif);
-			v.z = p.z + r * sin(phif) * cos(thetaf);
-		}
-		if(phi == 0)
-			continue;
+Scene::Scene() : m_scene(new SceneHandle(m_device)) {
+}
 
-		for(int theta = 1; theta <= numTheta; theta++) {
-			int p00 = (phi - 1) * numTheta + theta - 1;
-			int p01 = (phi - 1) * numTheta + theta % numTheta;
-			int p10 = phi * numTheta + theta - 1;
-			int p11 = phi * numTheta + theta % numTheta;
+Scene::~Scene() {
+}
 
-			if(phi > 1) {
-				triangles[tri].v0 = p10;
-				triangles[tri].v1 = p01;
-				triangles[tri].v2 = p00;
-				tri++;
-			}
+Scene::Scene(Scene&& s) : m_device(s.m_device), m_scene(std::move(s.m_scene)) {
+}
 
-			if(phi < numPhi) {
-				triangles[tri].v0 = p11;
-				triangles[tri].v1 = p01;
-				triangles[tri].v2 = p10;
-				tri++;
-			}
-		}
+Scene& Scene::operator = (Scene&& s) {
+	if(&s != this) {
+		m_device = s.m_device;
+		m_scene = std::move(s.m_scene);
 	}
 
-	rtcCommitGeometry(geom);
-	unsigned int geomID = rtcAttachGeometry(m_scene, geom);
-	rtcReleaseGeometry(geom);
+	return *this;
+}
+
+unsigned Scene::addMesh(Mesh&& geom) {
+	unsigned int geomID = rtcAttachGeometry(*m_scene, geom.geom());
+
+	rtcCommitGeometry(geom.geom());
+
 	return geomID;
 }
 
 unsigned Scene::addInstance(const Scene& s, const Vec3& tr) {
-	RTCGeometry instance = rtcNewGeometry(*m_device, RTC_GEOMETRY_TYPE_INSTANCE);
-	rtcSetGeometryInstancedScene(instance, s.m_scene);
-	unsigned int geomID = rtcAttachGeometry(m_scene, instance);
+	RTCGeometry instance = rtcNewGeometry(m_device, RTC_GEOMETRY_TYPE_INSTANCE);
+	rtcSetGeometryInstancedScene(instance, *s.m_scene);
+	unsigned int geomID = rtcAttachGeometry(*m_scene, instance);
 	rtcReleaseGeometry(instance);
 
 	float transform[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, tr.x, tr.y, tr.z, 1};
@@ -132,7 +69,7 @@ unsigned Scene::addInstance(const Scene& s, const Vec3& tr) {
 }
 
 void Scene::commit() {
-	rtcCommitScene(m_scene);
+	rtcCommitScene(*m_scene);
 }
 
 Vec3 Scene::renderPixel(const Ray& r) {
@@ -160,7 +97,7 @@ Vec3 Scene::renderPixel(const Ray& r) {
 
 	rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
 
-	rtcIntersect1(m_scene, &context, &rayhit);
+	rtcIntersect1(*m_scene, &context, &rayhit);
 
 	Vec3 color{1, 1, 1};
 
