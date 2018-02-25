@@ -29,6 +29,10 @@ Mesh::Triangles::const_iterator Mesh::Triangles::end() const {
 	return m_triangles + m_size;
 }
 
+std::size_t Mesh::Triangles::size() const {
+	return m_size;
+}
+
 /////////////////
 
 Mesh::Vertices::Vertices(Vertex* ptr, std::size_t size) : m_vertices(ptr), m_size(size) {
