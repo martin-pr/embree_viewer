@@ -74,8 +74,9 @@ int main(int argc, char* argv[]) {
 				for(int x=0;x<screen->w;++x) {
 					const float xf = ((float)x / (float)screen->w - 0.5f) * 2.0f;
 					const float yf = ((float)y / (float)screen->h - 0.5f) * 2.0f;
+					const float aspect = (float)screen->w / (float)screen->h;
 
-					const Ray r = cam.makeRay(xf, -yf);
+					const Ray r = cam.makeRay(xf, -yf / aspect);
 
 					const Vec3 color = scene.renderPixel(r);
 
