@@ -70,7 +70,7 @@ int main(int /*argc*/, char* /*argv*/[]) {
 					const float xf = ((float)x / (float)screen->w - 0.5f) * 2.0f;
 					const float yf = ((float)y / (float)screen->h - 0.5f) * 2.0f;
 
-					const Ray r = cam.makeRay(xf, yf);
+					const Ray r = cam.makeRay(xf, -yf);
 
 					const Vec3 color = scene.renderPixel(r);
 
@@ -94,7 +94,7 @@ int main(int /*argc*/, char* /*argv*/[]) {
 							const float xangle = ((float)(event.motion.xrel) / (float)screen->w) * M_PI;
 							const float yangle = ((float)(event.motion.yrel) / (float)screen->h) * M_PI;
 
-							cam.rotate(xangle, yangle);
+							cam.rotate(xangle, -yangle);
 						}
 
 						else if(event.motion.state & SDL_BUTTON_RMASK) {
