@@ -17,6 +17,9 @@ class Scene : public boost::noncopyable {
 		Scene();
 		~Scene();
 
+		Scene(Scene&& s);
+		Scene& operator = (Scene&& s);
+
 		unsigned addMesh(Mesh&& geom);
 		unsigned addInstance(const Scene& scene, const Vec3& tr);
 
@@ -25,7 +28,22 @@ class Scene : public boost::noncopyable {
 		Vec3 renderPixel(const Ray& r);
 
 	private:
-		Device m_device;
-		RTCScene m_scene;
+		class SceneHandle {
+			public:
+				SceneHandle(Device& device);
+				~SceneHandle();
 
+				SceneHandle(const SceneHandle& m) = delete;
+				SceneHandle& operator=(const SceneHandle& m) = delete;
+
+				operator RTCScene& ();
+				operator const RTCScene& () const;
+
+			private:
+				RTCScene m_scene;
+		};
+
+		Device m_device;
+
+		std::unique_ptr<SceneHandle> m_scene;
 };

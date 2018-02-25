@@ -8,28 +8,46 @@
 
 #include "mesh.h"
 
-namespace {
-
-// const int numPhi = 5;
-// const int numTheta = 2 * numPhi;
-
-const int numPhi = 50;
-const int numTheta = 2 * numPhi;
-
-}
-
-Scene::Scene() {
-	m_scene = rtcNewScene(m_device);
+Scene::SceneHandle::SceneHandle(Device& device) {
+	m_scene = rtcNewScene(device);
 
 	rtcSetSceneFlags(m_scene, RTC_SCENE_FLAG_COMPACT);
 }
 
-Scene::~Scene() {
+Scene::SceneHandle::~SceneHandle() {
 	rtcReleaseScene(m_scene);
 }
 
+Scene::SceneHandle::operator RTCScene& () {
+	return m_scene;
+}
+
+Scene::SceneHandle::operator const RTCScene& () const {
+	return m_scene;
+}
+
+////////////
+
+Scene::Scene() : m_scene(new SceneHandle(m_device)) {
+}
+
+Scene::~Scene() {
+}
+
+Scene::Scene(Scene&& s) : m_device(s.m_device), m_scene(std::move(s.m_scene)) {
+}
+
+Scene& Scene::operator = (Scene&& s) {
+	if(&s != this) {
+		m_device = s.m_device;
+		m_scene = std::move(s.m_scene);
+	}
+
+	return *this;
+}
+
 unsigned Scene::addMesh(Mesh&& geom) {
-	unsigned int geomID = rtcAttachGeometry(m_scene, geom.geom());
+	unsigned int geomID = rtcAttachGeometry(*m_scene, geom.geom());
 
 	rtcCommitGeometry(geom.geom());
 
@@ -38,8 +56,8 @@ unsigned Scene::addMesh(Mesh&& geom) {
 
 unsigned Scene::addInstance(const Scene& s, const Vec3& tr) {
 	RTCGeometry instance = rtcNewGeometry(m_device, RTC_GEOMETRY_TYPE_INSTANCE);
-	rtcSetGeometryInstancedScene(instance, s.m_scene);
-	unsigned int geomID = rtcAttachGeometry(m_scene, instance);
+	rtcSetGeometryInstancedScene(instance, *s.m_scene);
+	unsigned int geomID = rtcAttachGeometry(*m_scene, instance);
 	rtcReleaseGeometry(instance);
 
 	float transform[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, tr.x, tr.y, tr.z, 1};
@@ -51,7 +69,7 @@ unsigned Scene::addInstance(const Scene& s, const Vec3& tr) {
 }
 
 void Scene::commit() {
-	rtcCommitScene(m_scene);
+	rtcCommitScene(*m_scene);
 }
 
 Vec3 Scene::renderPixel(const Ray& r) {
@@ -79,7 +97,7 @@ Vec3 Scene::renderPixel(const Ray& r) {
 
 	rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
 
-	rtcIntersect1(m_scene, &context, &rayhit);
+	rtcIntersect1(*m_scene, &context, &rayhit);
 
 	Vec3 color{1, 1, 1};
 
