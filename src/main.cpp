@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
 		throw std::runtime_error(SDL_GetError());
 
 	// make the window
-	SDL_Surface* screen = SDL_SetVideoMode(SCREEN_SIZE, SCREEN_SIZE, SCREEN_BPP, SDL_SWSURFACE);
+	SDL_Surface* screen = SDL_SetVideoMode(SCREEN_SIZE, SCREEN_SIZE, SCREEN_BPP, SDL_SWSURFACE | SDL_RESIZABLE);
 
 	{
 		// make the scene
@@ -113,6 +113,11 @@ int main(int argc, char* argv[]) {
 
 							cam.position = cam.target - tr * dist;
 						}
+					}
+
+					// window resizing
+					else if(event.type == SDL_VIDEORESIZE) {
+						screen = SDL_SetVideoMode(event.resize.w, event.resize.h, SCREEN_BPP, SDL_SWSURFACE | SDL_RESIZABLE);
 					}
 				}
 			}
