@@ -5,7 +5,7 @@
 #include <iostream>
 
 struct Vec3 {
-	Vec3(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {
+	Vec3(float _x = 0.0f, float _y = 0.0f, float _z = 0.0f) : x(_x), y(_y), z(_z) {
 	}
 
 	float x, y, z;
