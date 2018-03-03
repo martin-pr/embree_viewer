@@ -8,7 +8,9 @@
 #include "scene.h"
 #include "maths.h"
 #include "mesh.h"
+
 #include "alembic.h"
+#include "obj.h"
 
 #define SCREEN_SIZE	512
 #define SCREEN_BPP	32
@@ -55,7 +57,16 @@ int main(int argc, char* argv[]) {
 		// make the scene
 		Scene scene;
 		if(vm.count("mesh")) {
-			scene = loadAlembic(vm["mesh"].as<std::string>());
+			boost::filesystem::path p(vm["mesh"].as<std::string>());
+
+			if(p.extension() == ".abc")
+				scene = loadAlembic(p);
+
+			else if(p.extension() == ".obj")
+				scene = loadObj(p);
+
+			else
+				throw std::runtime_error("unknown mesh file format - " + p.string());
 		}
 
 		else {
