@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
 
 	desc.add_options()
 	("help", "produce help message")
-	("alembic", po::value<std::string>(), "load an alembic file")
+	("mesh", po::value<std::string>(), "load mesh file (Alembic)")
 	;
 
 	po::variables_map vm;
@@ -54,29 +54,13 @@ int main(int argc, char* argv[]) {
 	{
 		// make the scene
 		Scene scene;
-
-		// add a bunch of spheres
-		Scene mesh;
-		if(vm.count("alembic"))
-			mesh = loadAlembic(vm["alembic"].as<std::string>());
+		if(vm.count("mesh")) {
+			scene = loadAlembic(vm["mesh"].as<std::string>());
+		}
 
 		else {
 			Mesh m = Mesh::makeSphere(Vec3{0, 0, 0}, 100);
-			mesh.addMesh(std::move(m));
-		}
-
-		mesh.commit();
-
-		{
-			// // static const long TOTAL = 1e5;
-			// static const long SQTOTAL = powf(TOTAL, 1.0/3.0);
-
-			// for(long x=-SQTOTAL/2;x<SQTOTAL/2;++x)
-			// 	for(long y=-SQTOTAL/2;y<SQTOTAL/2;++y)
-			// 		for(long z=-SQTOTAL/2;z<SQTOTAL/2;++z)
-			// 			scene.addInstance(mesh, Vec3{(float)x, (float)y, (float)z});
-
-			scene.addInstance(mesh, Vec3(0, 0, 0));
+			scene.addMesh(std::move(m));
 		}
 
 		scene.commit();
