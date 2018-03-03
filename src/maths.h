@@ -72,6 +72,18 @@ struct Ray {
 	Vec3 direction;
 };
 
+struct Mat4 {
+	float m[16] = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1};
+
+	float* operator[](std::size_t index) {
+		return m + index * 4;
+	}
+
+	const float* operator[](std::size_t index) const {
+		return m + index * 4;
+	}
+};
+
 struct Camera {
 	Vec3 target = Vec3(0,0,0);
 	Vec3 position = Vec3(0,0,-500);

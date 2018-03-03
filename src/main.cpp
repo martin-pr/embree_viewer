@@ -1,9 +1,13 @@
 #include <iostream>
 #include <stdexcept>
+#include <fstream>
 
 #include <SDL/SDL.h>
 
 #include <boost/program_options.hpp>
+#include <boost/filesystem/path.hpp>
+
+#include "json.hpp"
 
 #include "scene.h"
 #include "maths.h"
@@ -35,6 +39,7 @@ int main(int argc, char* argv[]) {
 	desc.add_options()
 	("help", "produce help message")
 	("mesh", po::value<std::string>(), "load mesh file (Alembic)")
+	("scene", po::value<std::string>(), "load a JSON scene file")
 	;
 
 	po::variables_map vm;
@@ -67,6 +72,42 @@ int main(int argc, char* argv[]) {
 
 			else
 				throw std::runtime_error("unknown mesh file format - " + p.string());
+		}
+
+		else if(vm.count("scene")) {
+			nlohmann::json source;
+			{
+				std::ifstream file(vm["scene"].as<std::string>());
+				file >> source;
+			}
+
+			const boost::filesystem::path scene_root = boost::filesystem::path(vm["scene"].as<std::string>()).parent_path();
+
+			assert(source.is_array());
+			for(const auto& m : source) {
+				auto path = m.find("path");
+				auto transform = m.find("transform");
+
+				if(path != m.end() && path->is_string() && transform != m.end() && transform->is_array() && transform->size() == 16) {
+					boost::filesystem::path p = path->get<std::string>();
+					if(p.is_relative())
+						p = scene_root / p;
+
+					Mat4 tr;
+					for(std::size_t i=0;i<16;++i)
+						tr.m[i] = transform[i].get<float>();
+
+
+
+				}
+				else {
+					std::stringstream err;
+					err << "invalid syntax in scene file - " << m;
+					throw std::runtime_error(err.str());
+				}
+
+				std::cout << m << std::endl;
+			}
 		}
 
 		else {
