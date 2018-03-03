@@ -3,10 +3,14 @@
 
 #include <SDL/SDL.h>
 
+#include <boost/program_options.hpp>
+
 #include "scene.h"
 #include "maths.h"
 #include "mesh.h"
+
 #include "alembic.h"
+#include "obj.h"
 
 #define SCREEN_SIZE	512
 #define SCREEN_BPP	32
@@ -14,16 +18,34 @@
 namespace {
 void set_pixel(SDL_Surface *surface, int x, int y, const Vec3& pixel) {
 	Uint32 *target_pixel = (Uint32*)((Uint8 *)surface->pixels + y * surface->pitch +
-	                       x * sizeof(* target_pixel));
+	                                 x * sizeof(* target_pixel));
 
 	Uint32 value = ((Uint32)(pixel.x * 255) << 16) + ((Uint32)(pixel.y * 255) << 8) +
-		((Uint32)(pixel.z * 255) << 0) + (255 << 24);
+	               ((Uint32)(pixel.z * 255) << 0) + (255 << 24);
 
 	*target_pixel = value;
 }
 }
 
+namespace po = boost::program_options;
+
 int main(int argc, char* argv[]) {
+	po::options_description desc("Allowed options");
+
+	desc.add_options()
+	("help", "produce help message")
+	("mesh", po::value<std::string>(), "load mesh file (Alembic)")
+	;
+
+	po::variables_map vm;
+	po::store(po::parse_command_line(argc, argv, desc), vm);
+	po::notify(vm);
+
+	if(vm.count("help")) {
+		std::cout << desc << std::endl;
+		return 1;
+	}
+
 	// SDL initialisation
 	if(SDL_Init(SDL_INIT_VIDEO))
 		throw std::runtime_error(SDL_GetError());
@@ -34,27 +56,22 @@ int main(int argc, char* argv[]) {
 	{
 		// make the scene
 		Scene scene;
+		if(vm.count("mesh")) {
+			boost::filesystem::path p(vm["mesh"].as<std::string>());
 
-		// add a bunch of spheres
-		Scene mesh;
-		if(argc == 1) {
-			Mesh m = Mesh::makeSphere(Vec3{0,0,0}, 0.3);
-			mesh.addMesh(std::move(m));
+			if(p.extension() == ".abc")
+				scene = loadAlembic(p);
+
+			else if(p.extension() == ".obj")
+				scene = loadObj(p);
+
+			else
+				throw std::runtime_error("unknown mesh file format - " + p.string());
 		}
-		else
-			mesh = loadAlembic(argv[1]);
-		mesh.commit();
 
-		{
-			// // static const long TOTAL = 1e5;
-			// static const long SQTOTAL = powf(TOTAL, 1.0/3.0);
-
-			// for(long x=-SQTOTAL/2;x<SQTOTAL/2;++x)
-			// 	for(long y=-SQTOTAL/2;y<SQTOTAL/2;++y)
-			// 		for(long z=-SQTOTAL/2;z<SQTOTAL/2;++z)
-			// 			scene.addInstance(mesh, Vec3{(float)x, (float)y, (float)z});
-
-			scene.addInstance(mesh, Vec3(0,0,0));
+		else {
+			Mesh m = Mesh::makeSphere(Vec3{0, 0, 0}, 100);
+			scene.addMesh(std::move(m));
 		}
 
 		scene.commit();
@@ -70,8 +87,8 @@ int main(int argc, char* argv[]) {
 
 		while(!quit) {
 			// render pixels
-			for(int y=0;y<screen->h;++y)
-				for(int x=0;x<screen->w;++x) {
+			for(int y = 0; y < screen->h; ++y)
+				for(int x = 0; x < screen->w; ++x) {
 					const float xf = ((float)x / (float)screen->w - 0.5f) * 2.0f;
 					const float yf = ((float)y / (float)screen->h - 0.5f) * 2.0f;
 					const float aspect = (float)screen->w / (float)screen->h;
@@ -110,7 +127,7 @@ int main(int argc, char* argv[]) {
 							float dist = tr.length();
 							tr.normalize();
 
-							dist = powf(dist, 1.0f+ydiff);
+							dist = powf(dist, 1.0f + ydiff);
 
 							cam.position = cam.target - tr * dist;
 						}
