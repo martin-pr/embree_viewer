@@ -13,7 +13,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_definitions(-std=c++11 -Werror -Wall -Wextra)
 
-find_package(Boost REQUIRED COMPONENTS system filesystem)
+find_package(Boost REQUIRED COMPONENTS system filesystem program_options)
 
 find_package(SDL REQUIRED)
 find_package(SDL_image REQUIRED)
