@@ -44,7 +44,14 @@ int main(int argc, char* argv[]) {
 
 	// make the window
 	SDL_Window* screen = SDL_CreateWindow("embree_viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_SIZE, SCREEN_SIZE, SDL_SWSURFACE | SDL_WINDOW_RESIZABLE);
-	SDL_Renderer* renderer = SDL_CreateRenderer(screen, -1, 0);
+	assert(screen != nullptr);
+
+	SDL_Renderer* renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_SOFTWARE);
+	assert(renderer != nullptr);
+
+	SDL_Surface* winSurface = SDL_GetWindowSurface(screen);
+	if(winSurface == nullptr)
+		throw std::runtime_error(SDL_GetError());
 
 	SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_GetWindowSurface(screen)->format->format, SDL_TEXTUREACCESS_STREAMING, SCREEN_SIZE / 4, SCREEN_SIZE / 4);
 
