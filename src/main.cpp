@@ -34,6 +34,11 @@ void set_pixel(SDL_Surface *surface, int x, int y, const Vec3& pixel) {
 namespace po = boost::program_options;
 
 namespace {
+	struct Instance {
+		Uint32 id;
+		Mat4 transform;
+	};
+
 	Scene loadMesh(const boost::filesystem::path& p) {
 		Scene result;
 
@@ -70,6 +75,7 @@ namespace {
 
 		auto objects = source.find("objects");
 		auto instances = source.find("instances");
+		auto instance_file = source.find("instance_file");
 
 		// object = a single instance, most likely :)
 		if(source.is_object() && path != source.end() && path->is_string() && transform != source.end() && transform->is_array() && transform->size() == 16) {
@@ -86,15 +92,8 @@ namespace {
 
 		// a subscene
 		else if(source.is_object() && objects != source.end() && objects->is_array()) {
-			// without instancing
-			if(instances == source.end())
-				for(auto& o : *objects) {
-					Scene item = parseObject(o, scene_root);
-					scene.addInstance(item);
-				}
-
-			// with instancing
-			else {
+			// inline instancing
+			if(instances != source.end()) {
 				std::vector<Scene> items;
 				for(auto& o : *objects)
 					items.push_back(parseObject(o, scene_root));
@@ -109,6 +108,40 @@ namespace {
 					scene.addInstance(items[id->get<std::size_t>()], parseMat4(*transform));
 				}
 			}
+
+			// binary instancing fun
+			else if(instance_file != source.end()) {
+				std::vector<Scene> items;
+				for(auto& o : *objects)
+					items.push_back(parseObject(o, scene_root));
+
+				boost::filesystem::path p = instance_file->get<std::string>();
+				if(p.is_relative())
+					p = scene_root / p;
+
+				if(!boost::filesystem::exists(p))
+					throw std::runtime_error("file not found - " + p.string());
+
+				std::ifstream file(p.string(), std::ios_base::binary);
+
+				Instance i;
+				assert(sizeof(i) == 17*4); // id + 16 floats
+
+				while(!file.eof()) {
+					file.read((char*)&i, sizeof(Instance));
+
+					if(!file.eof())
+						scene.addInstance(items[i.id], i.transform);
+				}
+
+			}
+
+			// without instancing
+			else
+				for(auto& o : *objects) {
+					Scene item = parseObject(o, scene_root);
+					scene.addInstance(item);
+				}
 		}
 
 		// a list of items as a subscene
