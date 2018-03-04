@@ -57,11 +57,6 @@ def scan(path):
 
             return result
 
-            #inst = mod.get_instances()
-
-            #mats = ix.api.GMathMatrix4x4dArray()
-            #mod.get_instance_matrices(mats)
-
     # recursive scan of contexts
     elif obj.is_context():
         ctx = obj.to_context()
