@@ -51,6 +51,15 @@ namespace {
 		return result;
 	}
 
+	Mat4 parseMat4(const nlohmann::json& source) {
+		assert(source.is_array() && source.size() == 16);
+
+		Mat4 tr;
+		for(std::size_t i=0;i<16;++i)
+			tr.m[i] = source[i].get<float>();
+		return tr;
+	}
+
 	Scene parseScene(const nlohmann::json& source, const boost::filesystem::path& scene_root);
 
 	Scene parseObject(const nlohmann::json& source, const boost::filesystem::path& scene_root) {
@@ -60,6 +69,7 @@ namespace {
 		auto transform = source.find("transform");
 
 		auto objects = source.find("objects");
+		auto instances = source.find("instances");
 
 		// object = a single instance, most likely :)
 		if(source.is_object() && path != source.end() && path->is_string() && transform != source.end() && transform->is_array() && transform->size() == 16) {
@@ -67,22 +77,37 @@ namespace {
 			if(p.is_relative())
 				p = scene_root / p;
 
-			Mat4 tr;
-			for(std::size_t i=0;i<16;++i)
-				tr.m[i] = (*transform)[i].get<float>();
-
 			if(!boost::filesystem::exists(p))
 				throw std::runtime_error("file not found - " + p.string());
 
 			Scene item = loadMesh(p);
-			scene.addInstance(item, tr);
+			scene.addInstance(item, parseMat4(*transform));
 		}
 
 		// a subscene
 		else if(source.is_object() && objects != source.end() && objects->is_array()) {
-			for(auto& o : *objects) {
-				Scene item = parseObject(o, scene_root);
-				scene.addInstance(item);
+			// without instancing
+			if(instances == source.end())
+				for(auto& o : *objects) {
+					Scene item = parseObject(o, scene_root);
+					scene.addInstance(item);
+				}
+
+			// with instancing
+			else {
+				std::vector<Scene> items;
+				for(auto& o : *objects)
+					items.push_back(parseObject(o, scene_root));
+
+				for(auto& i : *instances) {
+					auto id = i.find("id");
+					auto transform = i.find("transform");
+					assert(id != i.end() && transform != i.end());
+					assert(id->is_number() && id->get<std::size_t>() < items.size());
+					assert(transform->is_array() && transform->size() == 16);
+
+					scene.addInstance(items[id->get<std::size_t>()], parseMat4(*transform));
+				}
 			}
 		}
 
