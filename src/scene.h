@@ -17,11 +17,14 @@ class Scene : public boost::noncopyable {
 		Scene();
 		~Scene();
 
+		Scene(const Scene&) = delete;
+		Scene& operator=(const Scene&) = delete;
+
 		Scene(Scene&& s);
 		Scene& operator = (Scene&& s);
 
 		unsigned addMesh(Mesh&& geom);
-		unsigned addInstance(const Scene& scene, const Vec3& tr);
+		unsigned addInstance(const Scene& scene, const Mat4& tr = Mat4());
 
 		void commit();
 

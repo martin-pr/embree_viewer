@@ -1,9 +1,13 @@
 #include <iostream>
 #include <stdexcept>
+#include <fstream>
 
 #include <SDL/SDL.h>
 
 #include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
+
+#include "json.hpp"
 
 #include "scene.h"
 #include "maths.h"
@@ -29,12 +33,32 @@ void set_pixel(SDL_Surface *surface, int x, int y, const Vec3& pixel) {
 
 namespace po = boost::program_options;
 
+namespace {
+	Scene loadMesh(const boost::filesystem::path& p) {
+		Scene result;
+
+		if(p.extension() == ".abc")
+			result = loadAlembic(p);
+
+		else if(p.extension() == ".obj")
+			result = loadObj(p);
+
+		else
+			throw std::runtime_error("unknown mesh file format - " + p.string());
+
+		result.commit();
+
+		return result;
+	}
+}
+
 int main(int argc, char* argv[]) {
 	po::options_description desc("Allowed options");
 
 	desc.add_options()
 	("help", "produce help message")
 	("mesh", po::value<std::string>(), "load mesh file (Alembic)")
+	("scene", po::value<std::string>(), "load a JSON scene file")
 	;
 
 	po::variables_map vm;
@@ -56,17 +80,44 @@ int main(int argc, char* argv[]) {
 	{
 		// make the scene
 		Scene scene;
-		if(vm.count("mesh")) {
-			boost::filesystem::path p(vm["mesh"].as<std::string>());
+		if(vm.count("mesh"))
+			scene = loadMesh(vm["mesh"].as<std::string>());
 
-			if(p.extension() == ".abc")
-				scene = loadAlembic(p);
+		else if(vm.count("scene")) {
+			nlohmann::json source;
+			{
+				std::ifstream file(vm["scene"].as<std::string>());
+				file >> source;
+			}
 
-			else if(p.extension() == ".obj")
-				scene = loadObj(p);
+			const boost::filesystem::path scene_root = boost::filesystem::path(vm["scene"].as<std::string>()).parent_path();
 
-			else
-				throw std::runtime_error("unknown mesh file format - " + p.string());
+			assert(source.is_array());
+			for(const auto& m : source) {
+				auto path = m.find("path");
+				auto transform = m.find("transform");
+
+				if(path != m.end() && path->is_string() && transform != m.end() && transform->is_array() && transform->size() == 16) {
+					boost::filesystem::path p = path->get<std::string>();
+					if(p.is_relative())
+						p = scene_root / p;
+
+					Mat4 tr;
+					for(std::size_t i=0;i<16;++i)
+						tr.m[i] = (*transform)[i].get<float>();
+
+					if(!boost::filesystem::exists(p))
+						throw std::runtime_error("file not found - " + p.string());
+
+					Scene item = loadMesh(p);
+					scene.addInstance(item, tr);
+				}
+				else {
+					std::stringstream err;
+					err << "invalid syntax in scene file - " << m;
+					throw std::runtime_error(err.str());
+				}
+			}
 		}
 
 		else {
