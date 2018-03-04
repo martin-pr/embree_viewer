@@ -15,8 +15,7 @@ add_definitions(-std=c++11 -Werror -Wall -Wextra)
 
 find_package(Boost REQUIRED COMPONENTS system filesystem program_options)
 
-find_package(SDL REQUIRED)
-find_package(SDL_image REQUIRED)
+find_package(SDL2 REQUIRED)
 
 find_package(embree 3 REQUIRED)
 
