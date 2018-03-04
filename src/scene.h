@@ -28,7 +28,7 @@ class Scene : public boost::noncopyable {
 
 		void commit();
 
-		Vec3 renderPixel(const Ray& r);
+		Vec3 renderPixel(const Ray& r) const;
 
 	private:
 		class SceneHandle {

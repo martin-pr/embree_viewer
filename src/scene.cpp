@@ -71,7 +71,7 @@ void Scene::commit() {
 	rtcCommitScene(*m_scene);
 }
 
-Vec3 Scene::renderPixel(const Ray& r) {
+Vec3 Scene::renderPixel(const Ray& r) const {
 	RTCIntersectContext context;
 	rtcInitIntersectContext(&context);
 

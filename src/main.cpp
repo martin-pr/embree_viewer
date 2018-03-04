@@ -20,6 +20,40 @@
 
 namespace po = boost::program_options;
 
+namespace {
+
+void renderFrame(SDL_Texture* texture, const Camera& cam, const Scene& scene, SDL_Window* screen) {
+	Uint32* pixels = nullptr;
+	int pitch = 0;
+	Uint32 format;
+
+	int w, h;
+	SDL_QueryTexture(texture, &format, NULL, &w, &h);
+
+	if(SDL_LockTexture(texture, nullptr, (void**)&pixels, &pitch))
+		throw std::runtime_error(SDL_GetError());
+
+	for(int y = 0; y < h; ++y)
+		for(int x = 0; x < w; ++x) {
+			const float xf = ((float)x / (float)w - 0.5f) * 2.0f;
+			const float yf = ((float)y / (float)h - 0.5f) * 2.0f;
+			const float aspect = (float)w / (float)h;
+
+			const Ray r = cam.makeRay(xf, -yf / aspect);
+
+			const Vec3 color = scene.renderPixel(r);
+
+			Uint32 rgb = SDL_MapRGBA(SDL_GetWindowSurface(screen)->format, (Uint8)(color.x * 255.0), (Uint8)(color.y * 255.0),
+			                         (Uint8)(color.z * 255.0), 255);
+			Uint32 pixelPosition = y * (pitch / sizeof(Uint32)) + x;
+			pixels[pixelPosition] = rgb;
+		}
+
+	SDL_UnlockTexture(texture);
+}
+
+}
+
 int main(int argc, char* argv[]) {
 	po::options_description desc("Allowed options");
 
@@ -43,7 +77,8 @@ int main(int argc, char* argv[]) {
 		throw std::runtime_error(SDL_GetError());
 
 	// make the window
-	SDL_Window* screen = SDL_CreateWindow("embree_viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_SIZE, SCREEN_SIZE, SDL_SWSURFACE | SDL_WINDOW_RESIZABLE);
+	SDL_Window* screen = SDL_CreateWindow("embree_viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_SIZE,
+	                                      SCREEN_SIZE, SDL_SWSURFACE | SDL_WINDOW_RESIZABLE);
 	assert(screen != nullptr);
 
 	SDL_Renderer* renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_SOFTWARE);
@@ -53,7 +88,8 @@ int main(int argc, char* argv[]) {
 	if(winSurface == nullptr)
 		throw std::runtime_error(SDL_GetError());
 
-	SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_GetWindowSurface(screen)->format->format, SDL_TEXTUREACCESS_STREAMING, SCREEN_SIZE / 4, SCREEN_SIZE / 4);
+	SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_GetWindowSurface(screen)->format->format,
+	                       SDL_TEXTUREACCESS_STREAMING, SCREEN_SIZE / 4, SCREEN_SIZE / 4);
 
 	{
 		// make the scene
@@ -94,6 +130,8 @@ int main(int argc, char* argv[]) {
 			/////////////////////
 			// EVENT LOOP
 			/////////////////////
+			bool needsRepaint = ctr == 0;
+
 			{
 				SDL_Event event;
 				SDL_WaitEvent(&event);
@@ -112,6 +150,8 @@ int main(int argc, char* argv[]) {
 							const float yangle = ((float)(event.motion.yrel) / (float)h) * M_PI;
 
 							cam.rotate(xangle, -yangle);
+
+							needsRepaint = true;
 						}
 
 						else if(event.motion.state & SDL_BUTTON_RMASK) {
@@ -124,15 +164,20 @@ int main(int argc, char* argv[]) {
 							dist = powf(dist, 1.0f + ydiff);
 
 							cam.position = cam.target - tr * dist;
+
+							needsRepaint = true;
 						}
 					}
 
 					// window resizing
 					else if(event.type == SDL_WINDOWEVENT) {
-						if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+						if(event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
 							SDL_DestroyTexture(texture);
 
-							texture = SDL_CreateTexture(renderer, SDL_GetWindowSurface(screen)->format->format, SDL_TEXTUREACCESS_STREAMING, event.window.data1 / 4, event.window.data2 / 4);
+							texture = SDL_CreateTexture(renderer, SDL_GetWindowSurface(screen)->format->format, SDL_TEXTUREACCESS_STREAMING,
+							                            event.window.data1 / 4, event.window.data2 / 4);
+
+							needsRepaint = true;
 						}
 					}
 				} while(SDL_PollEvent(&event));
@@ -141,33 +186,8 @@ int main(int argc, char* argv[]) {
 			/////////////////////
 			// RENDERING
 			/////////////////////
-			{
-				Uint32* pixels = nullptr;
-				int pitch = 0;
-				Uint32 format;
-
-				int w, h;
-				SDL_QueryTexture(texture, &format, NULL, &w, &h);
-
-				if(SDL_LockTexture(texture, nullptr, (void**)&pixels, &pitch))
-					throw std::runtime_error(SDL_GetError());
-
-				for(int y = 0; y < h; ++y)
-					for(int x = 0; x < w; ++x) {
-						const float xf = ((float)x / (float)w - 0.5f) * 2.0f;
-						const float yf = ((float)y / (float)h - 0.5f) * 2.0f;
-						const float aspect = (float)w / (float)h;
-
-						const Ray r = cam.makeRay(xf, -yf / aspect);
-
-						const Vec3 color = scene.renderPixel(r);
-
-						Uint32 rgb = SDL_MapRGBA(SDL_GetWindowSurface(screen)->format, (Uint8)(color.x * 255.0), (Uint8)(color.y * 255.0), (Uint8)(color.z * 255.0), 255);
-						Uint32 pixelPosition = y * (pitch / sizeof(Uint32)) + x;
-						pixels[pixelPosition] = rgb;
-					}
-
-				SDL_UnlockTexture(texture);
+			if(needsRepaint) {
+				renderFrame(texture, cam, scene, screen);
 
 				// show the result by flipping the double buffer
 				SDL_RenderCopy(renderer, texture, NULL, NULL);
