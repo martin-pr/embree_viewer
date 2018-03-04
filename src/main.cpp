@@ -102,15 +102,15 @@ int main(int argc, char* argv[]) {
 			{
 				SDL_Event event;
 				while(SDL_PollEvent(&event)) {
+					int w, h;
+					SDL_GetWindowSize(screen, &w, &h);
+
 					// quit
 					if(event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE))
 						quit = true;
 
 					// camera motion
 					else if(event.type == SDL_MOUSEMOTION) {
-						int w, h;
-						SDL_GetWindowSize(screen, &w, &h);
-
 						if(event.motion.state & SDL_BUTTON_LMASK) {
 							const float xangle = ((float)(event.motion.xrel) / (float)w) * M_PI;
 							const float yangle = ((float)(event.motion.yrel) / (float)h) * M_PI;
@@ -137,6 +137,22 @@ int main(int argc, char* argv[]) {
 
 							currentTexture = -1;
 						}
+					}
+
+					else if(event.type == SDL_MOUSEBUTTONDOWN && event.button.clicks == 2) {
+						RTCRayHit hit = scene.trace(renderer.cameraRay(event.button.x, event.button.y, w, h));
+
+						Vec3 target{
+							hit.ray.org_x + hit.ray.dir_x * hit.ray.tfar,
+							hit.ray.org_y + hit.ray.dir_y * hit.ray.tfar,
+							hit.ray.org_z + hit.ray.dir_z * hit.ray.tfar,
+						};
+
+						cam.target = target;
+
+						renderer.setCamera(cam);
+
+						currentTexture = -1;
 					}
 
 					// window resizing

@@ -14,6 +14,7 @@ class Renderer : public boost::noncopyable {
 		~Renderer();
 
 		void setCamera(Camera& cam);
+		Ray cameraRay(int x, int y, int w, int h) const;
 
 		void resize(std::size_t /*w*/, std::size_t /*h*/);
 
@@ -39,4 +40,6 @@ class Renderer : public boost::noncopyable {
 
 		bool m_rendering;
 		std::unique_ptr<std::thread> m_thread;
+
+		int m_width, m_height;
 };

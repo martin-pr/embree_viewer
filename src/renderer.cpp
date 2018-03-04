@@ -57,6 +57,14 @@ void Renderer::renderAll() {
 		renderFrame();
 }
 
+Ray Renderer::cameraRay(int x, int y, int w, int h) const {
+	const float xf = ((float)x / (float)w - 0.5f) * 2.0f;
+	const float yf = ((float)y / (float)h - 0.5f) * 2.0f;
+	const float aspect = (float)w / (float)h;
+
+	return m_camera.makeRay(xf, -yf / aspect);
+}
+
 void Renderer::renderFrame() {
 	if(m_currentTexture < (int)m_textures.size() && m_rendering) {
 		Uint32* pixels = nullptr;
@@ -71,13 +79,7 @@ void Renderer::renderFrame() {
 
 		for(int y = 0; y < h && m_rendering; ++y)
 			for(int x = 0; x < w && m_rendering; ++x) {
-				const float xf = ((float)x / (float)w - 0.5f) * 2.0f;
-				const float yf = ((float)y / (float)h - 0.5f) * 2.0f;
-				const float aspect = (float)w / (float)h;
-
-				const Ray r = m_camera.makeRay(xf, -yf / aspect);
-
-				const Vec3 color = m_scene->renderPixel(r);
+				const Vec3 color = m_scene->renderPixel(cameraRay(x, y, w, h));
 
 				Uint32 rgb = SDL_MapRGBA(SDL_GetWindowSurface(m_window)->format, (Uint8)(color.x * 255.0), (Uint8)(color.y * 255.0),
 				                         (Uint8)(color.z * 255.0), 255);
