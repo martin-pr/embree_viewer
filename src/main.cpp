@@ -2,7 +2,8 @@
 #include <stdexcept>
 #include <fstream>
 
-#include <SDL/SDL.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_render.h>
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
@@ -13,167 +14,11 @@
 #include "maths.h"
 #include "mesh.h"
 
-#include "alembic.h"
-#include "obj.h"
+#include "scene_loading.h"
 
 #define SCREEN_SIZE	512
-#define SCREEN_BPP	32
-
-namespace {
-void set_pixel(SDL_Surface *surface, int x, int y, const Vec3& pixel) {
-	Uint32 *target_pixel = (Uint32*)((Uint8 *)surface->pixels + y * surface->pitch +
-	                                 x * sizeof(* target_pixel));
-
-	Uint32 value = ((Uint32)(pixel.x * 255) << 16) + ((Uint32)(pixel.y * 255) << 8) +
-	               ((Uint32)(pixel.z * 255) << 0) + (255 << 24);
-
-	*target_pixel = value;
-}
-}
 
 namespace po = boost::program_options;
-
-namespace {
-	struct Instance {
-		Uint32 id;
-		Mat4 transform;
-	};
-
-	Scene loadMesh(const boost::filesystem::path& p) {
-		Scene result;
-
-		if(p.extension() == ".abc")
-			result = loadAlembic(p);
-
-		else if(p.extension() == ".obj")
-			result = loadObj(p);
-
-		else
-			throw std::runtime_error("unknown mesh file format - " + p.string());
-
-		result.commit();
-
-		return result;
-	}
-
-	Mat4 parseMat4(const nlohmann::json& source) {
-		assert(source.is_array() && source.size() == 16);
-
-		Mat4 tr;
-		for(std::size_t i=0;i<16;++i)
-			tr.m[i] = source[i].get<float>();
-		return tr;
-	}
-
-	Scene parseScene(const nlohmann::json& source, const boost::filesystem::path& scene_root);
-
-	Scene parseObject(const nlohmann::json& source, const boost::filesystem::path& scene_root) {
-		Scene scene;
-
-		auto path = source.find("path");
-		auto transform = source.find("transform");
-
-		auto objects = source.find("objects");
-		auto instances = source.find("instances");
-		auto instance_file = source.find("instance_file");
-
-		// object = a single instance, most likely :)
-		if(source.is_object() && path != source.end() && path->is_string() && transform != source.end() && transform->is_array() && transform->size() == 16) {
-			boost::filesystem::path p = path->get<std::string>();
-			if(p.is_relative())
-				p = scene_root / p;
-
-			if(!boost::filesystem::exists(p))
-				throw std::runtime_error("file not found - " + p.string());
-
-			Scene item = loadMesh(p);
-			scene.addInstance(item, parseMat4(*transform));
-		}
-
-		// a subscene
-		else if(source.is_object() && objects != source.end() && objects->is_array()) {
-			// inline instancing
-			if(instances != source.end()) {
-				std::vector<Scene> items;
-				for(auto& o : *objects)
-					items.push_back(parseObject(o, scene_root));
-
-				for(auto& i : *instances) {
-					auto id = i.find("id");
-					auto transform = i.find("transform");
-					assert(id != i.end() && transform != i.end());
-					assert(id->is_number() && id->get<std::size_t>() < items.size());
-					assert(transform->is_array() && transform->size() == 16);
-
-					scene.addInstance(items[id->get<std::size_t>()], parseMat4(*transform));
-				}
-			}
-
-			// binary instancing fun
-			else if(instance_file != source.end()) {
-				std::vector<Scene> items;
-				for(auto& o : *objects)
-					items.push_back(parseObject(o, scene_root));
-
-				boost::filesystem::path p = instance_file->get<std::string>();
-				if(p.is_relative())
-					p = scene_root / p;
-
-				if(!boost::filesystem::exists(p))
-					throw std::runtime_error("file not found - " + p.string());
-
-				std::ifstream file(p.string(), std::ios_base::binary);
-
-				Instance i;
-				assert(sizeof(i) == 17*4); // id + 16 floats
-
-				while(!file.eof()) {
-					file.read((char*)&i, sizeof(Instance));
-
-					if(!file.eof())
-						scene.addInstance(items[i.id], i.transform);
-				}
-
-			}
-
-			// without instancing
-			else
-				for(auto& o : *objects) {
-					Scene item = parseObject(o, scene_root);
-					scene.addInstance(item);
-				}
-		}
-
-		// a list of items as a subscene
-		else if(source.is_array()) {
-			Scene item = parseScene(source, scene_root);
-			scene.addInstance(item);
-		}
-
-
-		// something else is an error
-		else {
-			std::stringstream err;
-			err << "invalid syntax in scene file - " << source;
-			throw std::runtime_error(err.str());
-		}
-
-		scene.commit();
-
-		return scene;
-	}
-
-	Scene parseScene(const nlohmann::json& source, const boost::filesystem::path& scene_root) {
-		Scene scene;
-
-		for(const auto& m : source)
-			scene.addInstance(parseObject(m, scene_root));
-
-		scene.commit();
-
-		return scene;
-	}
-}
 
 int main(int argc, char* argv[]) {
 	po::options_description desc("Allowed options");
@@ -198,7 +43,17 @@ int main(int argc, char* argv[]) {
 		throw std::runtime_error(SDL_GetError());
 
 	// make the window
-	SDL_Surface* screen = SDL_SetVideoMode(SCREEN_SIZE, SCREEN_SIZE, SCREEN_BPP, SDL_SWSURFACE | SDL_RESIZABLE);
+	SDL_Window* screen = SDL_CreateWindow("embree_viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_SIZE, SCREEN_SIZE, SDL_SWSURFACE | SDL_WINDOW_RESIZABLE);
+	assert(screen != nullptr);
+
+	SDL_Renderer* renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_SOFTWARE);
+	assert(renderer != nullptr);
+
+	SDL_Surface* winSurface = SDL_GetWindowSurface(screen);
+	if(winSurface == nullptr)
+		throw std::runtime_error(SDL_GetError());
+
+	SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_GetWindowSurface(screen)->format->format, SDL_TEXTUREACCESS_STREAMING, SCREEN_SIZE / 4, SCREEN_SIZE / 4);
 
 	{
 		// make the scene
@@ -236,42 +91,31 @@ int main(int argc, char* argv[]) {
 		bool quit = false;
 
 		while(!quit) {
-			// render pixels
-			for(int y = 0; y < screen->h; ++y)
-				for(int x = 0; x < screen->w; ++x) {
-					const float xf = ((float)x / (float)screen->w - 0.5f) * 2.0f;
-					const float yf = ((float)y / (float)screen->h - 0.5f) * 2.0f;
-					const float aspect = (float)screen->w / (float)screen->h;
-
-					const Ray r = cam.makeRay(xf, -yf / aspect);
-
-					const Vec3 color = scene.renderPixel(r);
-
-					set_pixel(screen, x, y, color);
-				}
-
-			// show the result by flipping the double buffer
-			SDL_Flip(screen);
-
-			// exit condition
+			/////////////////////
+			// EVENT LOOP
+			/////////////////////
 			{
 				SDL_Event event;
-				while(SDL_PollEvent(&event)) {
+				SDL_WaitEvent(&event);
+				do {
 					// quit
 					if(event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE))
 						quit = true;
 
 					// camera motion
 					else if(event.type == SDL_MOUSEMOTION) {
+						int w, h;
+						SDL_GetWindowSize(screen, &w, &h);
+
 						if(event.motion.state & SDL_BUTTON_LMASK) {
-							const float xangle = ((float)(event.motion.xrel) / (float)screen->w) * M_PI;
-							const float yangle = ((float)(event.motion.yrel) / (float)screen->h) * M_PI;
+							const float xangle = ((float)(event.motion.xrel) / (float)w) * M_PI;
+							const float yangle = ((float)(event.motion.yrel) / (float)h) * M_PI;
 
 							cam.rotate(xangle, -yangle);
 						}
 
 						else if(event.motion.state & SDL_BUTTON_RMASK) {
-							const float ydiff = ((float)(event.motion.yrel) / (float)screen->h);
+							const float ydiff = ((float)(event.motion.yrel) / (float)h);
 
 							Vec3 tr = cam.target - cam.position;
 							float dist = tr.length();
@@ -284,10 +128,51 @@ int main(int argc, char* argv[]) {
 					}
 
 					// window resizing
-					else if(event.type == SDL_VIDEORESIZE) {
-						screen = SDL_SetVideoMode(event.resize.w, event.resize.h, SCREEN_BPP, SDL_SWSURFACE | SDL_RESIZABLE);
+					else if(event.type == SDL_WINDOWEVENT) {
+						if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+							SDL_DestroyTexture(texture);
+
+							texture = SDL_CreateTexture(renderer, SDL_GetWindowSurface(screen)->format->format, SDL_TEXTUREACCESS_STREAMING, event.window.data1 / 4, event.window.data2 / 4);
+						}
 					}
-				}
+				} while(SDL_PollEvent(&event));
+			}
+
+			/////////////////////
+			// RENDERING
+			/////////////////////
+			{
+				Uint32* pixels = nullptr;
+				int pitch = 0;
+				Uint32 format;
+
+				int w, h;
+				SDL_QueryTexture(texture, &format, NULL, &w, &h);
+
+				if(SDL_LockTexture(texture, nullptr, (void**)&pixels, &pitch))
+					throw std::runtime_error(SDL_GetError());
+
+				for(int y = 0; y < h; ++y)
+					for(int x = 0; x < w; ++x) {
+						const float xf = ((float)x / (float)w - 0.5f) * 2.0f;
+						const float yf = ((float)y / (float)h - 0.5f) * 2.0f;
+						const float aspect = (float)w / (float)h;
+
+						const Ray r = cam.makeRay(xf, -yf / aspect);
+
+						const Vec3 color = scene.renderPixel(r);
+
+						Uint32 rgb = SDL_MapRGBA(SDL_GetWindowSurface(screen)->format, (Uint8)(color.x * 255.0), (Uint8)(color.y * 255.0), (Uint8)(color.z * 255.0), 255);
+						Uint32 pixelPosition = y * (pitch / sizeof(Uint32)) + x;
+						pixels[pixelPosition] = rgb;
+					}
+
+				SDL_UnlockTexture(texture);
+
+				// show the result by flipping the double buffer
+				SDL_RenderCopy(renderer, texture, NULL, NULL);
+
+				SDL_RenderPresent(renderer);
 			}
 
 			++ctr;
@@ -295,7 +180,8 @@ int main(int argc, char* argv[]) {
 	}
 
 	// clean up
-	SDL_FreeSurface(screen);
+	SDL_DestroyRenderer(renderer);
+
 	SDL_Quit();
 
 	return 0;
