@@ -1,0 +1,13 @@
+# Blender MTL File: 'Valley Terrain.blend'
+# Material Count: 1
+
+newmtl Valley
+Ns 192.156863
+Ka 1.000000 1.000000 1.000000
+Kd 0.446672 0.369662 0.289046
+Ks 0.003175 0.002964 0.002796
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 0.000000
+illum 2
+map_Bump /home/martin/.cache/Gorgeous lands/village road to explore_normal.jpg

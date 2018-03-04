@@ -3,108 +3,108 @@
     "objects": [
       [
         {
-          "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/11.obj",
+          "path": "11.obj",
           "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.8294542828728151, 1.0]
         }
       ],
       [
         {
-          "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/12.obj",
+          "path": "12.obj",
           "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.566522950591307, 1.0]
         }
       ],
       [
         {
-          "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/13.obj",
+          "path": "13.obj",
           "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 2.307173997625691, 1.0]
         }
       ],
       [
         {
-          "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/14.obj",
+          "path": "14.obj",
           "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 3.1286445160506693, 1.0]
         }
       ],
       [
         {
-          "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/15.obj",
+          "path": "15.obj",
           "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 3.681330115012131, 1.0]
         }
       ],
       [
         {
-          "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/16.obj",
+          "path": "16.obj",
           "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 4.540446601116506, 1.0]
         }
       ],
       [
         {
-          "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/17.obj",
+          "path": "17.obj",
           "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 5.272172103214636, 1.0]
         }
       ],
       [
         {
-          "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/18.obj",
+          "path": "18.obj",
           "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 6.185612756257596, 1.0]
         }
       ],
       [
         {
-          "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/19.obj",
+          "path": "19.obj",
           "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 7.158572811442853, 1.0]
         }
       ],
       [
         {
-          "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/20.obj",
+          "path": "20.obj",
           "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 8.195658052906133, 1.0]
         }
       ]
     ]
   },
   {
-    "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/01.obj",
+    "path": "01.obj",
     "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]
   },
   {
-    "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/01.obj",
+    "path": "01.obj",
     "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -9.524801753953707, 1.0]
   },
   {
-    "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/02.obj",
+    "path": "02.obj",
     "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -8.493571154066696, 1.0]
   },
   {
-    "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/03.obj",
+    "path": "03.obj",
     "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -7.597269891481918, 1.0]
   },
   {
-    "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/04.obj",
+    "path": "04.obj",
     "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -6.6382445112896304, 1.0]
   },
   {
-    "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/05.obj",
+    "path": "05.obj",
     "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -5.768450412238064, 1.0]
   },
   {
-    "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/06.obj",
+    "path": "06.obj",
     "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -4.86899766892672, 1.0]
   },
   {
-    "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/07.obj",
+    "path": "07.obj",
     "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -3.9119782788858397, 1.0]
   },
   {
-    "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/08.obj",
+    "path": "08.obj",
     "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -2.92559092091234, 1.0]
   },
   {
-    "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/09.obj",
+    "path": "09.obj",
     "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.8773964118727913, 1.0]
   },
   {
-    "path": "/home/martin/Dropbox/Coding/embree_viewer/data/Grass/10.obj",
+    "path": "10.obj",
     "transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -0.8300806780493925, 1.0]
   }
 ]

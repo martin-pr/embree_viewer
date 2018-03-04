@@ -30,11 +30,28 @@ def scan(path):
             base = mod.get_base_objects()
 
             subscene = {}
-            subscene["objects"] = []
 
+            objs = []
             for i in range(0, base.get_count()):
                 obj = scan(base[i].get_object().get_full_name())
-                subscene["objects"].append(obj)
+                objs.append(obj)
+            subscene["objects"] = objs;
+
+            inst = mod.get_instances()
+            mats = ix.api.GMathMatrix4x4dArray()
+            mod.get_instance_matrices(mats)
+
+            if inst.get_count() > 0:
+                assert inst.get_count() == mats.get_count()
+
+                instances = []
+                for i in range(0, inst.get_count()):
+                    ii = {}
+                    ii["id"] = inst[i]
+                    ii["transform"] = mat2arr(mats[i])
+
+                    instances.append(ii)
+                subscene["instances"] = instances
 
             result.append(subscene)
 
