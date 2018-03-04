@@ -17,40 +17,53 @@
 #include "scene_loading.h"
 
 #define SCREEN_SIZE	512
+#define TEXTURE_LEVELS 4
 
 namespace po = boost::program_options;
 
 namespace {
 
-void renderFrame(SDL_Texture* texture, const Camera& cam, const Scene& scene, SDL_Window* screen) {
-	Uint32* pixels = nullptr;
-	int pitch = 0;
-	Uint32 format;
-
-	int w, h;
-	SDL_QueryTexture(texture, &format, NULL, &w, &h);
-
-	if(SDL_LockTexture(texture, nullptr, (void**)&pixels, &pitch))
-		throw std::runtime_error(SDL_GetError());
-
-	for(int y = 0; y < h; ++y)
-		for(int x = 0; x < w; ++x) {
-			const float xf = ((float)x / (float)w - 0.5f) * 2.0f;
-			const float yf = ((float)y / (float)h - 0.5f) * 2.0f;
-			const float aspect = (float)w / (float)h;
-
-			const Ray r = cam.makeRay(xf, -yf / aspect);
-
-			const Vec3 color = scene.renderPixel(r);
-
-			Uint32 rgb = SDL_MapRGBA(SDL_GetWindowSurface(screen)->format, (Uint8)(color.x * 255.0), (Uint8)(color.y * 255.0),
-			                         (Uint8)(color.z * 255.0), 255);
-			Uint32 pixelPosition = y * (pitch / sizeof(Uint32)) + x;
-			pixels[pixelPosition] = rgb;
+class Renderer : public boost::noncopyable {
+	public:
+		Renderer(const Scene& scene, SDL_Window* window) : m_scene(&scene), m_window(window) {
 		}
 
-	SDL_UnlockTexture(texture);
-}
+		~Renderer() {
+		}
+
+		void renderFrame(SDL_Texture* texture, const Camera& cam) {
+			Uint32* pixels = nullptr;
+			int pitch = 0;
+			Uint32 format;
+
+			int w, h;
+			SDL_QueryTexture(texture, &format, NULL, &w, &h);
+
+			if(SDL_LockTexture(texture, nullptr, (void**)&pixels, &pitch))
+				throw std::runtime_error(SDL_GetError());
+
+			for(int y = 0; y < h; ++y)
+				for(int x = 0; x < w; ++x) {
+					const float xf = ((float)x / (float)w - 0.5f) * 2.0f;
+					const float yf = ((float)y / (float)h - 0.5f) * 2.0f;
+					const float aspect = (float)w / (float)h;
+
+					const Ray r = cam.makeRay(xf, -yf / aspect);
+
+					const Vec3 color = m_scene->renderPixel(r);
+
+					Uint32 rgb = SDL_MapRGBA(SDL_GetWindowSurface(m_window)->format, (Uint8)(color.x * 255.0), (Uint8)(color.y * 255.0),
+					                         (Uint8)(color.z * 255.0), 255);
+					Uint32 pixelPosition = y * (pitch / sizeof(Uint32)) + x;
+					pixels[pixelPosition] = rgb;
+				}
+
+			SDL_UnlockTexture(texture);
+		}
+	private:
+		const Scene* m_scene;
+		SDL_Window* m_window;
+};
 
 }
 
@@ -81,14 +94,14 @@ int main(int argc, char* argv[]) {
 	                                      SCREEN_SIZE, SDL_SWSURFACE | SDL_WINDOW_RESIZABLE);
 	assert(screen != nullptr);
 
-	SDL_Renderer* renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_SOFTWARE);
-	assert(renderer != nullptr);
+	SDL_Renderer* sdlRenderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_SOFTWARE);
+	assert(sdlRenderer != nullptr);
 
 	SDL_Surface* winSurface = SDL_GetWindowSurface(screen);
 	if(winSurface == nullptr)
 		throw std::runtime_error(SDL_GetError());
 
-	SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_GetWindowSurface(screen)->format->format,
+	SDL_Texture* texture = SDL_CreateTexture(sdlRenderer, SDL_GetWindowSurface(screen)->format->format,
 	                       SDL_TEXTUREACCESS_STREAMING, SCREEN_SIZE / 4, SCREEN_SIZE / 4);
 
 	{
@@ -120,6 +133,7 @@ int main(int argc, char* argv[]) {
 		///////////////////////////
 
 		Camera cam;
+		Renderer renderer(scene, screen);
 
 		// the main loop
 		unsigned ctr = 0;
@@ -134,8 +148,7 @@ int main(int argc, char* argv[]) {
 
 			{
 				SDL_Event event;
-				SDL_WaitEvent(&event);
-				do {
+				while(SDL_PollEvent(&event)) {
 					// quit
 					if(event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE))
 						quit = true;
@@ -174,33 +187,35 @@ int main(int argc, char* argv[]) {
 						if(event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
 							SDL_DestroyTexture(texture);
 
-							texture = SDL_CreateTexture(renderer, SDL_GetWindowSurface(screen)->format->format, SDL_TEXTUREACCESS_STREAMING,
+							texture = SDL_CreateTexture(sdlRenderer, SDL_GetWindowSurface(screen)->format->format, SDL_TEXTUREACCESS_STREAMING,
 							                            event.window.data1 / 4, event.window.data2 / 4);
 
 							needsRepaint = true;
 						}
 					}
-				} while(SDL_PollEvent(&event));
+				}
 			}
 
 			/////////////////////
 			// RENDERING
 			/////////////////////
 			if(needsRepaint) {
-				renderFrame(texture, cam, scene, screen);
+				renderer.renderFrame(texture, cam);
 
 				// show the result by flipping the double buffer
-				SDL_RenderCopy(renderer, texture, NULL, NULL);
+				SDL_RenderCopy(sdlRenderer, texture, NULL, NULL);
 
-				SDL_RenderPresent(renderer);
+				SDL_RenderPresent(sdlRenderer);
 			}
+			else
+				usleep(5000);
 
 			++ctr;
 		}
 	}
 
 	// clean up
-	SDL_DestroyRenderer(renderer);
+	SDL_DestroyRenderer(sdlRenderer);
 
 	SDL_Quit();
 
