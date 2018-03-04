@@ -1,6 +1,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <fstream>
+#include <thread>
+#include <functional>
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_render.h>
@@ -17,7 +19,7 @@
 #include "scene_loading.h"
 
 #define SCREEN_SIZE	512
-#define TEXTURE_LEVELS 4
+#define TEXTURE_LEVELS 8
 
 namespace po = boost::program_options;
 
@@ -26,24 +28,63 @@ namespace {
 class Renderer : public boost::noncopyable {
 	public:
 		Renderer(const Scene& scene, SDL_Window* window, SDL_Renderer* renderer) : m_scene(&scene), m_window(window),
-			m_renderer(renderer), m_currentTexture(0) {
+			m_renderer(renderer), m_currentTexture(0), m_rendering(false) {
 
 			m_textures.resize(TEXTURE_LEVELS, nullptr);
 			initTextures();
 		}
 
 		~Renderer() {
+			m_rendering = false;
+			if(m_thread.get() != nullptr)
+				m_thread->join();
+			m_thread.reset();
+
 			for(auto& t : m_textures)
-			SDL_DestroyTexture(t);
+				SDL_DestroyTexture(t);
 		}
 
 		void setCamera(Camera& cam) {
 			m_camera = cam;
+
+			startRenderThread();
+		}
+
+		void resize(std::size_t /*w*/, std::size_t /*h*/) {
+			initTextures();
+
+			startRenderThread();
+		}
+
+		SDL_Texture* texture() {
+			assert(m_currentTexture > 0);
+			return m_textures[m_currentTexture-1];
+		}
+
+		int currentTexture() const {
+			return m_currentTexture-1;
+		}
+
+	private:
+		void startRenderThread() {
+			m_rendering = false;
+			if(m_thread.get() != nullptr)
+				m_thread->join();
+
 			m_currentTexture = 0;
+			m_rendering = true;
+
+			std::function<void()> renderFunctor(std::bind(&Renderer::renderAll, this));
+			m_thread = std::unique_ptr<std::thread>(new std::thread(renderFunctor));
+		}
+
+		void renderAll() {
+			while(m_rendering && m_currentTexture < (int)m_textures.size())
+				renderFrame();
 		}
 
 		void renderFrame() {
-			if(m_currentTexture < (int)m_textures.size()) {
+			if(m_currentTexture < (int)m_textures.size() && m_rendering) {
 				Uint32* pixels = nullptr;
 				int pitch = 0;
 				Uint32 format;
@@ -54,8 +95,8 @@ class Renderer : public boost::noncopyable {
 				if(SDL_LockTexture(m_textures[m_currentTexture], nullptr, (void**)&pixels, &pitch))
 					throw std::runtime_error(SDL_GetError());
 
-				for(int y = 0; y < h; ++y)
-					for(int x = 0; x < w; ++x) {
+				for(int y = 0; y < h && m_rendering; ++y)
+					for(int x = 0; x < w && m_rendering; ++x) {
 						const float xf = ((float)x / (float)w - 0.5f) * 2.0f;
 						const float yf = ((float)y / (float)h - 0.5f) * 2.0f;
 						const float aspect = (float)w / (float)h;
@@ -72,26 +113,13 @@ class Renderer : public boost::noncopyable {
 
 				SDL_UnlockTexture(m_textures[m_currentTexture]);
 
-				++m_currentTexture;
+				if(m_rendering)
+					++m_currentTexture;
 			}
+			else
+				m_rendering = false;
 		}
 
-		void resize(std::size_t /*w*/, std::size_t /*h*/) {
-			initTextures();
-
-			m_currentTexture = 0;
-		}
-
-		SDL_Texture* texture() {
-			assert(m_currentTexture > 0);
-			return m_textures[m_currentTexture-1];
-		}
-
-		int currentTexture() const {
-			return m_currentTexture-1;
-		}
-
-	private:
 		void initTextures() {
 			int w, h;
 			SDL_GetWindowSize(m_window, &w, &h);
@@ -116,6 +144,9 @@ class Renderer : public boost::noncopyable {
 		int m_currentTexture;
 
 		Camera m_camera;
+
+		bool m_rendering;
+		std::unique_ptr<std::thread> m_thread;
 };
 
 }
@@ -182,8 +213,10 @@ int main(int argc, char* argv[]) {
 
 		///////////////////////////
 
-		Camera cam;
 		Renderer renderer(scene, screen, sdlRenderer);
+
+		Camera cam;
+		renderer.setCamera(cam);
 
 		// the main loop
 		int currentTexture = 0;
@@ -213,6 +246,8 @@ int main(int argc, char* argv[]) {
 							cam.rotate(xangle, -yangle);
 
 							renderer.setCamera(cam);
+
+							currentTexture = -1;
 						}
 
 						else if(event.motion.state & SDL_BUTTON_RMASK) {
@@ -227,13 +262,18 @@ int main(int argc, char* argv[]) {
 							cam.position = cam.target - tr * dist;
 
 							renderer.setCamera(cam);
+
+							currentTexture = -1;
 						}
 					}
 
 					// window resizing
 					else if(event.type == SDL_WINDOWEVENT) {
-						if(event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+						if(event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
 							renderer.resize(event.window.data1 / 4, event.window.data2 / 4);
+
+							currentTexture = -1;
+						}
 					}
 				}
 			}
@@ -253,7 +293,6 @@ int main(int argc, char* argv[]) {
 				}
 			}
 
-			renderer.renderFrame();
 			usleep(5000);
 		}
 	}
