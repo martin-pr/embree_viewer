@@ -71,7 +71,7 @@ void Scene::commit() {
 	rtcCommitScene(*m_scene);
 }
 
-Vec3 Scene::renderPixel(const Ray& r) {
+Vec3 Scene::renderPixel(const Ray& r) const {
 	RTCIntersectContext context;
 	rtcInitIntersectContext(&context);
 
@@ -98,11 +98,11 @@ Vec3 Scene::renderPixel(const Ray& r) {
 
 	rtcIntersect1(*m_scene, &context, &rayhit);
 
-	Vec3 color{1, 1, 1};
+	Vec3 color{0, 0, 0};
 
 	if(rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID) {
 		//color = Vec3{(float)(rayhit.hit.geomID & 1), (float)((rayhit.hit.geomID >> 1) & 1), (float)((rayhit.hit.geomID >> 2) & 1)};
-		color = Vec3(1, 0, 0);
+		color = Vec3(1, 1, 1);
 
 		Vec3 norm(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z);
 		norm.normalize();
