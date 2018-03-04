@@ -25,21 +25,27 @@ namespace {
 
 class Renderer : public boost::noncopyable {
 	public:
-		Renderer(const Scene& scene, SDL_Window* window) : m_scene(&scene), m_window(window) {
+		Renderer(const Scene& scene, SDL_Window* window, SDL_Renderer* renderer) : m_scene(&scene), m_window(window),
+			m_renderer(renderer) {
+
+			m_texture = SDL_CreateTexture(m_renderer, SDL_GetWindowSurface(m_window)->format->format,
+			                              SDL_TEXTUREACCESS_STREAMING, SCREEN_SIZE / 4, SCREEN_SIZE / 4);
+
 		}
 
 		~Renderer() {
+			SDL_DestroyTexture(m_texture);
 		}
 
-		void renderFrame(SDL_Texture* texture, const Camera& cam) {
+		void renderFrame(const Camera& cam) {
 			Uint32* pixels = nullptr;
 			int pitch = 0;
 			Uint32 format;
 
 			int w, h;
-			SDL_QueryTexture(texture, &format, NULL, &w, &h);
+			SDL_QueryTexture(m_texture, &format, NULL, &w, &h);
 
-			if(SDL_LockTexture(texture, nullptr, (void**)&pixels, &pitch))
+			if(SDL_LockTexture(m_texture, nullptr, (void**)&pixels, &pitch))
 				throw std::runtime_error(SDL_GetError());
 
 			for(int y = 0; y < h; ++y)
@@ -58,11 +64,25 @@ class Renderer : public boost::noncopyable {
 					pixels[pixelPosition] = rgb;
 				}
 
-			SDL_UnlockTexture(texture);
+			SDL_UnlockTexture(m_texture);
 		}
+
+		void resize(std::size_t w, std::size_t h) {
+			m_texture = SDL_CreateTexture(m_renderer, SDL_GetWindowSurface(m_window)->format->format, SDL_TEXTUREACCESS_STREAMING,
+			                              w, h);
+
+		}
+
+		SDL_Texture* texture() {
+			return m_texture;
+		}
+
 	private:
 		const Scene* m_scene;
 		SDL_Window* m_window;
+		SDL_Renderer* m_renderer;
+
+		SDL_Texture* m_texture;
 };
 
 }
@@ -101,9 +121,6 @@ int main(int argc, char* argv[]) {
 	if(winSurface == nullptr)
 		throw std::runtime_error(SDL_GetError());
 
-	SDL_Texture* texture = SDL_CreateTexture(sdlRenderer, SDL_GetWindowSurface(screen)->format->format,
-	                       SDL_TEXTUREACCESS_STREAMING, SCREEN_SIZE / 4, SCREEN_SIZE / 4);
-
 	{
 		// make the scene
 		Scene scene;
@@ -133,7 +150,7 @@ int main(int argc, char* argv[]) {
 		///////////////////////////
 
 		Camera cam;
-		Renderer renderer(scene, screen);
+		Renderer renderer(scene, screen, sdlRenderer);
 
 		// the main loop
 		unsigned ctr = 0;
@@ -185,10 +202,7 @@ int main(int argc, char* argv[]) {
 					// window resizing
 					else if(event.type == SDL_WINDOWEVENT) {
 						if(event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-							SDL_DestroyTexture(texture);
-
-							texture = SDL_CreateTexture(sdlRenderer, SDL_GetWindowSurface(screen)->format->format, SDL_TEXTUREACCESS_STREAMING,
-							                            event.window.data1 / 4, event.window.data2 / 4);
+							renderer.resize(event.window.data1 / 4, event.window.data2 / 4);
 
 							needsRepaint = true;
 						}
@@ -200,10 +214,10 @@ int main(int argc, char* argv[]) {
 			// RENDERING
 			/////////////////////
 			if(needsRepaint) {
-				renderer.renderFrame(texture, cam);
+				renderer.renderFrame(cam);
 
 				// show the result by flipping the double buffer
-				SDL_RenderCopy(sdlRenderer, texture, NULL, NULL);
+				SDL_RenderCopy(sdlRenderer, renderer.texture(), NULL, NULL);
 
 				SDL_RenderPresent(sdlRenderer);
 			}
