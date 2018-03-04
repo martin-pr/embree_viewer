@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
 	SDL_Window* screen = SDL_CreateWindow("embree_viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_SIZE, SCREEN_SIZE, SDL_SWSURFACE | SDL_WINDOW_RESIZABLE);
 	SDL_Renderer* renderer = SDL_CreateRenderer(screen, -1, 0);
 
-	SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_GetWindowSurface(screen)->format->format, SDL_TEXTUREACCESS_STREAMING, SCREEN_SIZE, SCREEN_SIZE);
+	SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_GetWindowSurface(screen)->format->format, SDL_TEXTUREACCESS_STREAMING, SCREEN_SIZE / 4, SCREEN_SIZE / 4);
 
 	{
 		// make the scene
@@ -128,6 +128,9 @@ int main(int argc, char* argv[]) {
 					// camera motion
 					else if(event.type == SDL_MOUSEMOTION) {
 						if(event.motion.state & SDL_BUTTON_LMASK) {
+							int w, h;
+							SDL_GetWindowSize(screen, &w, &h);
+
 							const float xangle = ((float)(event.motion.xrel) / (float)w) * M_PI;
 							const float yangle = ((float)(event.motion.yrel) / (float)h) * M_PI;
 
