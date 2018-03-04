@@ -5,7 +5,7 @@
 #include <SDL/SDL.h>
 
 #include <boost/program_options.hpp>
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 
 #include "json.hpp"
 
@@ -32,6 +32,25 @@ void set_pixel(SDL_Surface *surface, int x, int y, const Vec3& pixel) {
 }
 
 namespace po = boost::program_options;
+
+namespace {
+	Scene loadMesh(const boost::filesystem::path& p) {
+		Scene result;
+
+		if(p.extension() == ".abc")
+			result = loadAlembic(p);
+
+		else if(p.extension() == ".obj")
+			result = loadObj(p);
+
+		else
+			throw std::runtime_error("unknown mesh file format - " + p.string());
+
+		result.commit();
+
+		return result;
+	}
+}
 
 int main(int argc, char* argv[]) {
 	po::options_description desc("Allowed options");
@@ -61,18 +80,8 @@ int main(int argc, char* argv[]) {
 	{
 		// make the scene
 		Scene scene;
-		if(vm.count("mesh")) {
-			boost::filesystem::path p(vm["mesh"].as<std::string>());
-
-			if(p.extension() == ".abc")
-				scene = loadAlembic(p);
-
-			else if(p.extension() == ".obj")
-				scene = loadObj(p);
-
-			else
-				throw std::runtime_error("unknown mesh file format - " + p.string());
-		}
+		if(vm.count("mesh"))
+			scene = loadMesh(vm["mesh"].as<std::string>());
 
 		else if(vm.count("scene")) {
 			nlohmann::json source;
@@ -95,18 +104,19 @@ int main(int argc, char* argv[]) {
 
 					Mat4 tr;
 					for(std::size_t i=0;i<16;++i)
-						tr.m[i] = transform[i].get<float>();
+						tr.m[i] = (*transform)[i].get<float>();
 
+					if(!boost::filesystem::exists(p))
+						throw std::runtime_error("file not found - " + p.string());
 
-
+					Scene item = loadMesh(p);
+					scene.addInstance(item, tr);
 				}
 				else {
 					std::stringstream err;
 					err << "invalid syntax in scene file - " << m;
 					throw std::runtime_error(err.str());
 				}
-
-				std::cout << m << std::endl;
 			}
 		}
 

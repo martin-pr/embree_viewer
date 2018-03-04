@@ -17,6 +17,9 @@ class Scene : public boost::noncopyable {
 		Scene();
 		~Scene();
 
+		Scene(const Scene&) = delete;
+		Scene& operator=(const Scene&) = delete;
+
 		Scene(Scene&& s);
 		Scene& operator = (Scene&& s);
 

@@ -3,6 +3,9 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <cassert>
+
+#include <boost/filesystem.hpp>
 
 #include "maths.h"
 #include "mesh.h"
@@ -66,6 +69,8 @@ namespace {
 }
 
 Scene loadObj(boost::filesystem::path path) {
+	assert(boost::filesystem::exists(path));
+
 	Scene scene;
 
 	std::vector<Vec3> vertices, normals;
