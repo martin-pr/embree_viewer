@@ -26,63 +26,96 @@ namespace {
 class Renderer : public boost::noncopyable {
 	public:
 		Renderer(const Scene& scene, SDL_Window* window, SDL_Renderer* renderer) : m_scene(&scene), m_window(window),
-			m_renderer(renderer) {
+			m_renderer(renderer), m_currentTexture(0) {
 
-			m_texture = SDL_CreateTexture(m_renderer, SDL_GetWindowSurface(m_window)->format->format,
-			                              SDL_TEXTUREACCESS_STREAMING, SCREEN_SIZE / 4, SCREEN_SIZE / 4);
-
+			m_textures.resize(TEXTURE_LEVELS, nullptr);
+			initTextures();
 		}
 
 		~Renderer() {
-			SDL_DestroyTexture(m_texture);
+			for(auto& t : m_textures)
+			SDL_DestroyTexture(t);
 		}
 
-		void renderFrame(const Camera& cam) {
-			Uint32* pixels = nullptr;
-			int pitch = 0;
-			Uint32 format;
-
-			int w, h;
-			SDL_QueryTexture(m_texture, &format, NULL, &w, &h);
-
-			if(SDL_LockTexture(m_texture, nullptr, (void**)&pixels, &pitch))
-				throw std::runtime_error(SDL_GetError());
-
-			for(int y = 0; y < h; ++y)
-				for(int x = 0; x < w; ++x) {
-					const float xf = ((float)x / (float)w - 0.5f) * 2.0f;
-					const float yf = ((float)y / (float)h - 0.5f) * 2.0f;
-					const float aspect = (float)w / (float)h;
-
-					const Ray r = cam.makeRay(xf, -yf / aspect);
-
-					const Vec3 color = m_scene->renderPixel(r);
-
-					Uint32 rgb = SDL_MapRGBA(SDL_GetWindowSurface(m_window)->format, (Uint8)(color.x * 255.0), (Uint8)(color.y * 255.0),
-					                         (Uint8)(color.z * 255.0), 255);
-					Uint32 pixelPosition = y * (pitch / sizeof(Uint32)) + x;
-					pixels[pixelPosition] = rgb;
-				}
-
-			SDL_UnlockTexture(m_texture);
+		void setCamera(Camera& cam) {
+			m_camera = cam;
+			m_currentTexture = 0;
 		}
 
-		void resize(std::size_t w, std::size_t h) {
-			m_texture = SDL_CreateTexture(m_renderer, SDL_GetWindowSurface(m_window)->format->format, SDL_TEXTUREACCESS_STREAMING,
-			                              w, h);
+		void renderFrame() {
+			if(m_currentTexture < (int)m_textures.size()) {
+				Uint32* pixels = nullptr;
+				int pitch = 0;
+				Uint32 format;
 
+				int w, h;
+				SDL_QueryTexture(m_textures[m_currentTexture], &format, NULL, &w, &h);
+
+				if(SDL_LockTexture(m_textures[m_currentTexture], nullptr, (void**)&pixels, &pitch))
+					throw std::runtime_error(SDL_GetError());
+
+				for(int y = 0; y < h; ++y)
+					for(int x = 0; x < w; ++x) {
+						const float xf = ((float)x / (float)w - 0.5f) * 2.0f;
+						const float yf = ((float)y / (float)h - 0.5f) * 2.0f;
+						const float aspect = (float)w / (float)h;
+
+						const Ray r = m_camera.makeRay(xf, -yf / aspect);
+
+						const Vec3 color = m_scene->renderPixel(r);
+
+						Uint32 rgb = SDL_MapRGBA(SDL_GetWindowSurface(m_window)->format, (Uint8)(color.x * 255.0), (Uint8)(color.y * 255.0),
+						                         (Uint8)(color.z * 255.0), 255);
+						Uint32 pixelPosition = y * (pitch / sizeof(Uint32)) + x;
+						pixels[pixelPosition] = rgb;
+					}
+
+				SDL_UnlockTexture(m_textures[m_currentTexture]);
+
+				++m_currentTexture;
+			}
+		}
+
+		void resize(std::size_t /*w*/, std::size_t /*h*/) {
+			initTextures();
+
+			m_currentTexture = 0;
 		}
 
 		SDL_Texture* texture() {
-			return m_texture;
+			assert(m_currentTexture > 0);
+			return m_textures[m_currentTexture-1];
+		}
+
+		int currentTexture() const {
+			return m_currentTexture-1;
 		}
 
 	private:
+		void initTextures() {
+			int w, h;
+			SDL_GetWindowSize(m_window, &w, &h);
+
+			for(std::vector<SDL_Texture*>::reverse_iterator it = m_textures.rbegin(); it != m_textures.rend(); ++it) {
+				if(*it != nullptr)
+					SDL_DestroyTexture(*it);
+
+				*it = SDL_CreateTexture(m_renderer, SDL_GetWindowSurface(m_window)->format->format, SDL_TEXTUREACCESS_STREAMING,
+				                        w, h);
+
+				w /= 2;
+				h /= 2;
+			}
+		}
+
 		const Scene* m_scene;
 		SDL_Window* m_window;
 		SDL_Renderer* m_renderer;
 
-		SDL_Texture* m_texture;
+		std::vector<SDL_Texture*> m_textures;
+		int m_currentTexture;
+
+		Camera m_camera;
 };
 
 }
@@ -153,7 +186,7 @@ int main(int argc, char* argv[]) {
 		Renderer renderer(scene, screen, sdlRenderer);
 
 		// the main loop
-		unsigned ctr = 0;
+		int currentTexture = 0;
 
 		bool quit = false;
 
@@ -161,8 +194,6 @@ int main(int argc, char* argv[]) {
 			/////////////////////
 			// EVENT LOOP
 			/////////////////////
-			bool needsRepaint = ctr == 0;
-
 			{
 				SDL_Event event;
 				while(SDL_PollEvent(&event)) {
@@ -181,7 +212,7 @@ int main(int argc, char* argv[]) {
 
 							cam.rotate(xangle, -yangle);
 
-							needsRepaint = true;
+							renderer.setCamera(cam);
 						}
 
 						else if(event.motion.state & SDL_BUTTON_RMASK) {
@@ -195,17 +226,14 @@ int main(int argc, char* argv[]) {
 
 							cam.position = cam.target - tr * dist;
 
-							needsRepaint = true;
+							renderer.setCamera(cam);
 						}
 					}
 
 					// window resizing
 					else if(event.type == SDL_WINDOWEVENT) {
-						if(event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+						if(event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
 							renderer.resize(event.window.data1 / 4, event.window.data2 / 4);
-
-							needsRepaint = true;
-						}
 					}
 				}
 			}
@@ -213,18 +241,20 @@ int main(int argc, char* argv[]) {
 			/////////////////////
 			// RENDERING
 			/////////////////////
-			if(needsRepaint) {
-				renderer.renderFrame(cam);
+			{
+				const int textureId = renderer.currentTexture();
+				if(currentTexture != textureId && textureId >= 0) {
+					// show the result by flipping the double buffer
+					SDL_RenderCopy(sdlRenderer, renderer.texture(), NULL, NULL);
 
-				// show the result by flipping the double buffer
-				SDL_RenderCopy(sdlRenderer, renderer.texture(), NULL, NULL);
+					SDL_RenderPresent(sdlRenderer);
 
-				SDL_RenderPresent(sdlRenderer);
+					currentTexture = textureId;
+				}
 			}
-			else
-				usleep(5000);
 
-			++ctr;
+			renderer.renderFrame();
+			usleep(5000);
 		}
 	}
 
