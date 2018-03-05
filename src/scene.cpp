@@ -72,6 +72,28 @@ void Scene::commit() {
 }
 
 Vec3 Scene::renderPixel(const Ray& r) const {
+	RTCRayHit rayhit = trace(r);
+
+	Vec3 color{0, 0, 0};
+
+	if(rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID) {
+		//color = Vec3{(float)(rayhit.hit.geomID & 1), (float)((rayhit.hit.geomID >> 1) & 1), (float)((rayhit.hit.geomID >> 2) & 1)};
+		color = Vec3(1, 1, 1);
+
+		Vec3 norm(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z);
+		norm.normalize();
+
+		const float d = std::abs(r.direction.dot(norm));
+
+		color.x *= d;
+		color.y *= d;
+		color.z *= d;
+	}
+
+	return color;
+}
+
+RTCRayHit Scene::trace(const Ray& r) const {
 	RTCIntersectContext context;
 	rtcInitIntersectContext(&context);
 
@@ -98,21 +120,5 @@ Vec3 Scene::renderPixel(const Ray& r) const {
 
 	rtcIntersect1(*m_scene, &context, &rayhit);
 
-	Vec3 color{0, 0, 0};
-
-	if(rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID) {
-		//color = Vec3{(float)(rayhit.hit.geomID & 1), (float)((rayhit.hit.geomID >> 1) & 1), (float)((rayhit.hit.geomID >> 2) & 1)};
-		color = Vec3(1, 1, 1);
-
-		Vec3 norm(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z);
-		norm.normalize();
-
-		const float d = std::abs(r.direction.dot(norm));
-
-		color.x *= d;
-		color.y *= d;
-		color.z *= d;
-	}
-
-	return color;
+	return rayhit;
 }
