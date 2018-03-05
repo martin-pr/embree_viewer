@@ -1,8 +1,10 @@
 #include "scene_loading.h"
 
+#include <fstream>
+
 #include <boost/filesystem.hpp>
 
-#include <SDL/SDL.h>
+#include <SDL2/SDL.h>
 
 #include "alembic.h"
 #include "obj.h"

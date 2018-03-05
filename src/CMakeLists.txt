@@ -15,9 +15,9 @@ add_executable(embree_viewer ${sources})
 
 target_link_libraries(embree_viewer
 	${Boost_LIBRARIES}
-	${SDL2_LIBRARIES}
+	SDL2
 	embree3 #${EMBREE_LIBRARY}
 	${OPENEXR_LIBRARIES} ${ILMBASE_LIBRARIES}
-	Alembic #${ALEMBIC_LIBRARY}
+	AlembicAbc AlembicAbcGeom AlembicAbcCoreAbstract AlembicAbcCoreFactory #${ALEMBIC_LIBRARY}
 	tbb
 )

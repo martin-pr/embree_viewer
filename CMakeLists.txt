@@ -15,11 +15,13 @@ add_definitions(-std=c++17 -Werror -Wall -Wextra)
 
 find_package(Boost REQUIRED COMPONENTS system filesystem program_options)
 
-find_package(SDL2 REQUIRED)
+#find_package(SDL2 REQUIRED)
 
-find_package(embree 3 REQUIRED)
+#find_package(embree 3 REQUIRED)
 
-find_package(OpenEXR REQUIRED)
-find_package(Alembic REQUIRED)
+#find_package(OpenEXR REQUIRED)
+#find_package(Alembic REQUIRED)
+
+include_directories($ENV{BOB_WORLD_SLOT_ilmbase}/include/OpenEXR)
 
 add_subdirectory (src build)
