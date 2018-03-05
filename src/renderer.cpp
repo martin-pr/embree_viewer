@@ -1,5 +1,7 @@
 #include "renderer.h"
 
+#include <tbb/parallel_for.h>
+
 #define TEXTURE_LEVELS 8
 #define TILE_SUBDIV 8
 
@@ -78,14 +80,16 @@ void Renderer::renderFrame() {
 		if(SDL_LockTexture(m_textures[m_currentTexture], nullptr, (void**)&pixels, &pitch))
 			throw std::runtime_error(SDL_GetError());
 
-		for(int tileId = 0; tileId < TILE_SUBDIV*TILE_SUBDIV; ++tileId) {
+		//for(int tileId = 0; tileId < TILE_SUBDIV*TILE_SUBDIV; ++tileId) {
+		tbb::parallel_for(0, TILE_SUBDIV*TILE_SUBDIV, [this, &w, &h, &pixels, &pitch](int tileId) {
 			const int xMin = ((tileId % TILE_SUBDIV) * w) / TILE_SUBDIV;
 			const int xMax = ((tileId % TILE_SUBDIV + 1) * w) / TILE_SUBDIV;
 			const int yMin = ((tileId / TILE_SUBDIV) * h) / TILE_SUBDIV;
 			const int yMax = ((tileId / TILE_SUBDIV + 1) * h) / TILE_SUBDIV;
 
 			renderTile(xMin, xMax, yMin, yMax, pixels, pitch, w, h);
-		}
+		});
+		//}
 
 		SDL_UnlockTexture(m_textures[m_currentTexture]);
 

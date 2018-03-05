@@ -19,4 +19,5 @@ target_link_libraries(embree_viewer
 	embree3 #${EMBREE_LIBRARY}
 	${OPENEXR_LIBRARIES} ${ILMBASE_LIBRARIES}
 	Alembic #${ALEMBIC_LIBRARY}
+	tbb
 )
