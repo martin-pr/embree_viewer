@@ -26,6 +26,7 @@ class Renderer : public boost::noncopyable {
 
 		void renderAll();
 		void renderFrame();
+		void renderTile(int xMin, int xMax, int yMin, int yMax, Uint32* pixels, int pitch, int w, int h);
 
 		void initTextures();
 

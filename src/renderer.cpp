@@ -1,6 +1,7 @@
 #include "renderer.h"
 
 #define TEXTURE_LEVELS 8
+#define TILE_SUBDIV 8
 
 Renderer::Renderer(const Scene& scene, SDL_Window* window, SDL_Renderer* renderer) : m_scene(&scene), m_window(window),
 	m_renderer(renderer), m_currentTexture(0), m_rendering(false) {
@@ -77,15 +78,14 @@ void Renderer::renderFrame() {
 		if(SDL_LockTexture(m_textures[m_currentTexture], nullptr, (void**)&pixels, &pitch))
 			throw std::runtime_error(SDL_GetError());
 
-		for(int y = 0; y < h && m_rendering; ++y)
-			for(int x = 0; x < w && m_rendering; ++x) {
-				const Vec3 color = m_scene->renderPixel(cameraRay(x, y, w, h));
+		for(int tileId = 0; tileId < TILE_SUBDIV*TILE_SUBDIV; ++tileId) {
+			const int xMin = ((tileId % TILE_SUBDIV) * w) / TILE_SUBDIV;
+			const int xMax = ((tileId % TILE_SUBDIV + 1) * w) / TILE_SUBDIV;
+			const int yMin = ((tileId / TILE_SUBDIV) * h) / TILE_SUBDIV;
+			const int yMax = ((tileId / TILE_SUBDIV + 1) * h) / TILE_SUBDIV;
 
-				Uint32 rgb = SDL_MapRGBA(SDL_GetWindowSurface(m_window)->format, (Uint8)(color.x * 255.0), (Uint8)(color.y * 255.0),
-				                         (Uint8)(color.z * 255.0), 255);
-				Uint32 pixelPosition = y * (pitch / sizeof(Uint32)) + x;
-				pixels[pixelPosition] = rgb;
-			}
+			renderTile(xMin, xMax, yMin, yMax, pixels, pitch, w, h);
+		}
 
 		SDL_UnlockTexture(m_textures[m_currentTexture]);
 
@@ -94,6 +94,18 @@ void Renderer::renderFrame() {
 	}
 	else
 		m_rendering = false;
+}
+
+void Renderer::renderTile(int xMin, int xMax, int yMin, int yMax, Uint32* pixels, int pitch, int w, int h) {
+	for(int y = yMin; y < yMax && m_rendering; ++y)
+		for(int x = xMin; x < xMax && m_rendering; ++x) {
+			const Vec3 color = m_scene->renderPixel(cameraRay(x, y, w, h));
+
+			Uint32 rgb = SDL_MapRGBA(SDL_GetWindowSurface(m_window)->format, (Uint8)(color.x * 255.0), (Uint8)(color.y * 255.0),
+			                         (Uint8)(color.z * 255.0), 255);
+			Uint32 pixelPosition = y * (pitch / sizeof(Uint32)) + x;
+			pixels[pixelPosition] = rgb;
+		}
 }
 
 void Renderer::initTextures() {
