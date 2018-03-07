@@ -49,9 +49,14 @@ Scene parseObject(const nlohmann::json& source, const boost::filesystem::path& s
 	auto instances = source.find("instances");
 	auto instance_file = source.find("instance_file");
 
+	Mat4 parentTransform;
+	if(transform != source.end()) {
+		assert(transform->is_array() && transform->size() == 16);
+		parentTransform = parseMat4(*transform);
+	}
+
 	// object = a single instance, most likely :)
-	if(source.is_object() && path != source.end() && path->is_string() && transform != source.end()
-	        && transform->is_array() && transform->size() == 16) {
+	if(source.is_object() && path != source.end() && path->is_string()) {
 		boost::filesystem::path p = path->get<std::string>();
 		if(p.is_relative())
 			p = scene_root / p;
@@ -60,7 +65,7 @@ Scene parseObject(const nlohmann::json& source, const boost::filesystem::path& s
 			throw std::runtime_error("file not found - " + p.string());
 
 		Scene item = loadMesh(p);
-		scene.addInstance(item, parseMat4(*transform));
+		scene.addInstance(item, parentTransform);
 	}
 
 	// a subscene
@@ -78,7 +83,7 @@ Scene parseObject(const nlohmann::json& source, const boost::filesystem::path& s
 				assert(id->is_number() && id->get<std::size_t>() < items.size());
 				assert(transform->is_array() && transform->size() == 16);
 
-				scene.addInstance(items[id->get<std::size_t>()], parseMat4(*transform));
+				scene.addInstance(items[id->get<std::size_t>()], parseMat4(*transform) * parentTransform);
 			}
 		}
 
@@ -104,7 +109,7 @@ Scene parseObject(const nlohmann::json& source, const boost::filesystem::path& s
 				file.read((char*)&i, sizeof(Instance));
 
 				if(!file.eof())
-					scene.addInstance(items[i.id], i.transform);
+					scene.addInstance(items[i.id], i.transform * parentTransform);
 			}
 
 		}
@@ -113,14 +118,14 @@ Scene parseObject(const nlohmann::json& source, const boost::filesystem::path& s
 		else
 			for(auto& o : *objects) {
 				Scene item = parseObject(o, scene_root);
-				scene.addInstance(item);
+				scene.addInstance(item, parentTransform);
 			}
 	}
 
 	// a list of items as a subscene
 	else if(source.is_array()) {
 		Scene item = parseScene(source, scene_root);
-		scene.addInstance(item);
+		scene.addInstance(item, parentTransform);
 	}
 
 

@@ -54,11 +54,14 @@ unsigned Scene::addMesh(Mesh&& geom) {
 	return geomID;
 }
 
-unsigned Scene::addInstance(const Scene& s, const Mat4& tr) {
+unsigned Scene::addInstance(const Scene& s, const Mat4& _tr) {
 	RTCGeometry instance = rtcNewGeometry(m_device, RTC_GEOMETRY_TYPE_INSTANCE);
 	rtcSetGeometryInstancedScene(instance, *s.m_scene);
 	unsigned int geomID = rtcAttachGeometry(*m_scene, instance);
 	rtcReleaseGeometry(instance);
+
+	Mat4 tr = _tr;
+	// tr.transpose();
 
 	rtcSetGeometryTransform(instance, 0, RTC_FORMAT_FLOAT4X4_COLUMN_MAJOR, tr.m);
 
