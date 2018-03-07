@@ -129,7 +129,7 @@ int main(int argc, char* argv[]) {
 							float dist = tr.length();
 							tr.normalize();
 
-							dist = powf(dist, 1.0f + ydiff);
+							dist *= 1.0f + (float)ydiff * 2.0;
 
 							cam.position = cam.target - tr * dist;
 

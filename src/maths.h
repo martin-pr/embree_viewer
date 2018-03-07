@@ -121,7 +121,7 @@ struct Camera {
 		Vec3 up = fwd.cross(side);
 		up.normalize();
 
-		Vec3 dir = fwd + side * x + up * y;
+		Vec3 dir = fwd + side * -x + up * y;
 		dir.normalize();
 
 		return Ray{
@@ -134,7 +134,7 @@ struct Camera {
 		Vec3 dir = target - position;
 
 		float xrot = atan2(dir.z, dir.x);
-		xrot -= xangle;
+		xrot += xangle;
 
 		float yrot = atan2(dir.y, sqrt(dir.z * dir.z + dir.x * dir.x));
 		yrot += yangle;
