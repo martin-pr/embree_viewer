@@ -106,7 +106,7 @@ struct Mat4 {
 
 struct Camera {
 	Vec3 target = Vec3(0, 0, 0);
-	Vec3 position = Vec3(0, 0, -2);
+	Vec3 position = Vec3(0, 0, -500);
 
 	/// a silly version of "making rays" from screen coordinates (x and y are in -1..1)
 	Ray makeRay(float x, float y) const {
