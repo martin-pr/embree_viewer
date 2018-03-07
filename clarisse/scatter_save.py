@@ -47,6 +47,7 @@ def scan(path, target_dir, saved_scatterers):
                 objs.append(ii)
             subscene["objects"] = objs;
             subscene["transform"] = mat2arr(mod.get_object_matrix())
+            subscene["scene_path"] = obj.get_full_name()
 
             inst = mod.get_instances()
             mats = ix.api.GMathMatrix4x4dArray()
@@ -77,7 +78,7 @@ def scan(path, target_dir, saved_scatterers):
                             instance_file.write(struct.pack('I', inst[i]))
                             instance_file.write(struct.pack('16f', *mat2arr(mats[i])))
 
-                        subscene["instance_file"] = filename
+                    subscene["instance_file"] = filename
 
             result.append(subscene)
 
