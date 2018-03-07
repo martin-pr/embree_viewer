@@ -45,6 +45,7 @@ def scan(path, target_dir):
                 ii = scan(base[i].get_object().get_full_name(), target_dir)
                 objs.append(ii)
             subscene["objects"] = objs;
+            subscene["transform"] = mat2arr(mod.get_object_matrix())
 
             inst = mod.get_instances()
             mats = ix.api.GMathMatrix4x4dArray()
