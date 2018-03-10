@@ -78,3 +78,9 @@ A simple scattering scene, using assets exported from Blender and Clarisse, show
 ```
 /embree_viewer --scene data/Grass/scene.json
 ```
+
+## License and contributions
+
+This demo is licensed under **MIT license**, and as such you can use this code for both commercial and noncommercial purposes.
+
+Any **contribution is welcome**, in terms of ideas, improvements, bugfixes or additional example files.
