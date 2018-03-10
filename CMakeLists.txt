@@ -11,7 +11,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR})
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_definitions(-std=c++11 -Werror -Wall -Wextra)
+add_definitions(-std=c++17 -Werror -Wall -Wextra)
 
 find_package(Boost REQUIRED COMPONENTS system filesystem program_options)
 
