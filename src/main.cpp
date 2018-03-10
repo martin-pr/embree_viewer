@@ -28,8 +28,8 @@ int main(int argc, char* argv[]) {
 
 	desc.add_options()
 	("help", "produce help message")
-	("mesh", po::value<std::string>(), "load mesh file (Alembic)")
-	("scene", po::value<std::string>(), "load a JSON scene file")
+	("mesh", po::value<std::string>(), "load mesh file (.abc, .obj)")
+	("scene", po::value<std::string>(), "load a scene file (.json)")
 	;
 
 	po::variables_map vm;
