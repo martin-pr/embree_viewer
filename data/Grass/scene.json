@@ -1,5 +1,6 @@
 [
     {
+        "scene_path": "project://scene/scatterer", 
         "instance_file": "project______scene__scatterer.bin", 
         "objects": [
             [
@@ -462,6 +463,24 @@
                     ]
                 }
             ]
+        ], 
+        "transform": [
+            1.0, 
+            0.0, 
+            0.0, 
+            0.0, 
+            0.0, 
+            1.0, 
+            0.0, 
+            0.0, 
+            0.0, 
+            0.0, 
+            1.0, 
+            0.0, 
+            0.0, 
+            0.0, 
+            0.0, 
+            1.0
         ]
     }, 
     {
