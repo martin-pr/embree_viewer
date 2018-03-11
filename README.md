@@ -67,11 +67,11 @@ The root of the scene is a json `list`, enumerating the elements of the scene. E
 
 Each _object_ is represented as a simple dictionary, with a filesystem `path` (absolute or relative) to an `.obj` or a `.abc` mesh file, and a 4x4 matrix `transform` represented as an array.
 
-A _scene_ is a dictionary containing an array of `objects` (each either an object, or another sub-scene), a `transform` acting as a parent for all objects and either a set of `instances` in an array of structs with `id` and `transform`, or an `instance_file` link to a binary file containing the instancing information.
+A _scene_ is a dictionary containing an array of `objects` (each either an object, or another sub-scene), a `transform` acting as a parent for all objects and either a set of `instances` in an array of structs with `id` and `transform`, or an `instance_file` link to a binary file containing the instancing information. A `scene_path` string then represents a unique ID of the instanced sub-scene in the scene file, serving as an identifier to de-duplicated sub-scenes.
 
 ### Binary instances file format
 
-The _instancing file_ is a simple binary file, containing records of 17x32bit data records:
+The _instancing file_ is a plain binary file, containing 17x32bit data records:
 * first 4 bytes represent a 32-bit unsigned integer, referencing which of the `objects` records should be used for this particular instance
 * 16 4-byte records after that represent a `transformation matrix` of each instance (composed of 32-bit floats)
 
