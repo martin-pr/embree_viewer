@@ -55,6 +55,14 @@ Allowed options:
   --scene arg           load a scene file (.json)
 ```
 
+## Mouse interaction
+
+The viewer implements only minimal mouse interaction (for now):
+
+* *left mouse button + movement* rotates around the current origin point
+* *right mouse button + movement* moves the camera towards or away form the origin point (using logarithmic scale based on distance)
+* *left double click* selects the camera's focus point to the point of intersection between the camera ray determined from the click and the scene
+
 ## File formats
 
 At the moment, there are 3 input file types - `.abc`, `.obj` and `.json`.
