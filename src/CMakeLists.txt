@@ -21,3 +21,5 @@ target_link_libraries(embree_viewer
 	AlembicAbc AlembicAbcGeom AlembicAbcCoreAbstract AlembicAbcCoreFactory #${ALEMBIC_LIBRARY}
 	tbb
 )
+
+install(TARGETS embree_viewer DESTINATION bin)
