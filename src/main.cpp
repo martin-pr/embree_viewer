@@ -41,6 +41,19 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
+	// int numdrivers = SDL_GetNumRenderDrivers();
+
+	// std::cout << "drivers count = " << numdrivers << std::endl;
+
+	// for(int i=0;i<numdrivers;i++) {
+	// 	SDL_RendererInfo drinfo;
+	// 	SDL_GetRenderDriverInfo(i, &drinfo);
+
+	// 	std::cout << drinfo.name << std::endl;
+	// }
+
+	SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
+
 	// SDL initialisation
 	if(SDL_Init(SDL_INIT_VIDEO))
 		throw std::runtime_error(SDL_GetError());

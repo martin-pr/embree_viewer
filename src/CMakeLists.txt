@@ -20,6 +20,7 @@ target_link_libraries(embree_viewer
 	${OPENEXR_LIBRARIES} ${ILMBASE_LIBRARIES}
 	AlembicAbc AlembicAbcGeom AlembicAbcCoreAbstract AlembicAbcCoreFactory #${ALEMBIC_LIBRARY}
 	tbb
+	pthread
 )
 
 install(TARGETS embree_viewer DESTINATION bin)
